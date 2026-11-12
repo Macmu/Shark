@@ -21,19 +21,17 @@ class AdbPairingReceiver : BroadcastReceiver() {
         }
 
         val appContext = context.applicationContext
-        val pending = goAsync()
+        // 不用 goAsync()：配对包含 mDNS/TLS 等待，常超过前台广播 10 秒时限，
+        // 持有 PendingResult 会触发 BroadcastTimeout ANR。广播立即结束，
+        // 由独立（非 daemon）线程继续配对，避免线程随进程回收被中断。
         Thread {
-            try {
-                val result = AdbAuth.pairAndConnect(appContext, code)
-                runCatching {
-                    AdbAuth.notifyResult(
-                        appContext,
-                        result.getOrElse { "内置授权失败：${it.message ?: it.javaClass.simpleName}" }
-                    )
-                }
-            } finally {
-                pending.finish()
+            val message = try {
+                AdbAuth.pairAndConnect(appContext, code)
+                    .getOrElse { "内置授权失败：${it.message ?: it.javaClass.simpleName}" }
+            } catch (t: Throwable) {
+                "内置授权失败：${t.message ?: t.javaClass.simpleName}"
             }
-        }.apply { isDaemon = true; start() }
+            runCatching { AdbAuth.notifyResult(appContext, message) }
+        }.apply { name = "shark-adb-pairing"; start() }
     }
 }

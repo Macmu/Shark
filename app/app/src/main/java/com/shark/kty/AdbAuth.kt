@@ -134,7 +134,7 @@ object AdbAuth {
         if (!paired) error(
             "配对失败：${lastError?.message ?: "配对码错误或已超时，关闭弹窗后重新打开再试"}"
         )
-        val ok = m.connectTls(context.applicationContext, 15_000L)
+        val ok = m.connectTls(context.applicationContext, 8_000L)
         connected = ok && m.isConnected
         if (!isReady()) error("配对成功但连接失败，请确认「无线调试」开关已打开")
         "内置授权已连接（无线调试）"
@@ -284,7 +284,7 @@ object AdbAuth {
         )
         return try {
             mdns.start()
-            latch.await(12, TimeUnit.SECONDS)
+            latch.await(6, TimeUnit.SECONDS)
             found.get().takeIf { it > 0 }
         } catch (_: Throwable) {
             null
@@ -409,7 +409,7 @@ object AdbAuth {
     ) : AbsAdbConnectionManager() {
         init {
             setApi(Build.VERSION.SDK_INT)
-            setTimeout(25, TimeUnit.SECONDS)
+            setTimeout(8, TimeUnit.SECONDS)
             setHostAddress("127.0.0.1")
             setThrowOnUnauthorised(false)
         }
