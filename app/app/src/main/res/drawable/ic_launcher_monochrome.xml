@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 单色层：主题图标按 alpha 取形，眼睛做镂空以保持表情 -->
+<!-- 单色层：主题图标取 alpha 取形，保留盘蛇剪影（头 + 身体 + 尾巴） -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -7,17 +7,22 @@
     android:viewportHeight="512">
 
     <group
-        android:scaleX="1.05"
-        android:scaleY="1.05"
+        android:scaleX="0.9"
+        android:scaleY="0.9"
         android:pivotX="256"
         android:pivotY="256"
-        android:translateY="29">
+        android:translateY="-24">
 
         <path
             android:fillColor="#FFFFFF"
-            android:fillType="evenOdd"
-            android:pathData="M256,100 C330,100 382,154 382,228 C382,300 330,356 256,356 C182,356 130,300 130,228 C130,154 182,100 256,100 Z
-                M159,210 a41,41 0 1,0 82,0 a41,41 0 1,0 -82,0 Z
-                M271,210 a41,41 0 1,0 82,0 a41,41 0 1,0 -82,0 Z" />
+            android:pathData="M366,350 C404,346 436,338 452,326 C446,344 434,358 418,368 C400,380 386,390 366,396 Z" />
+
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M124,378 a128,58 0 1,0 256,0 a128,58 0 1,0 -256,0 Z" />
+
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M146,228 a106,98 0 1,0 212,0 a106,98 0 1,0 -212,0 Z" />
     </group>
 </vector>

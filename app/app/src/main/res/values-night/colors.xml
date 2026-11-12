@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 深色模式：深海军蓝而不是近黑，避免图标整体发灰压抑 -->
-    <color name="ic_launcher_background">#1B2740</color>
+    <!-- 深色模式：墨绿底，与亮色版同色系，避免近黑底导致的灰暗感 -->
+    <color name="ic_launcher_background">#24331E</color>
 </resources>
