@@ -21,6 +21,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +67,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.SolidColor
@@ -701,6 +705,8 @@ class MainActivity : ComponentActivity() {
             if (snapshot.isNotEmpty()) state.scrollToItem(snapshot.size - 1)
         }
         val ready = binderReady && authorized
+        val focusRequester = remember { FocusRequester() }
+        val keyboard = LocalSoftwareKeyboardController.current
         // 输入条固定在顶部：键盘弹起时只有输出区收缩，输入框位置不动，
         // 不会再出现「一打字上面就全被顶没」的情况。
         Column(Modifier.fillMaxSize().imePadding()) {
@@ -735,6 +741,15 @@ class MainActivity : ComponentActivity() {
                     .height(48.dp)
                     .clip(RoundedCornerShape(13.dp))
                     .background(palette.surface)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        // 整行（含 # 号与右侧留白）都能聚焦并唤起键盘，
+                        // 否则只有文字那一行的热区，点偏一点就没反应。
+                        runCatching { focusRequester.requestFocus() }
+                        keyboard?.show()
+                    }
                     .padding(start = 14.dp, end = 5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -745,6 +760,8 @@ class MainActivity : ComponentActivity() {
                     onValueChange = { cmdInput = it },
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
+                        .focusRequester(focusRequester)
                         // 外接键盘 / 遥控器的物理回车也要能执行，不能只依赖软键盘的「发送」。
                         .onPreviewKeyEvent { event ->
                             if (event.type == KeyEventType.KeyDown &&

@@ -373,17 +373,6 @@ object AdbAuth {
         val action = NotificationCompat.Action.Builder(
             android.R.drawable.ic_dialog_info, "输入配对码", pending
         ).addRemoteInput(remoteInput).build()
-        // 尾随「关闭」动作：部分 ROM 会把带 RemoteInput 的通知钉在通知栏，
-        // 给用户一个确定的收起入口，否则只能等授权流程再次触发清理。
-        val dismissIntent = Intent(context, AdbPairingReceiver::class.java)
-            .setAction(ACTION_DISMISS)
-        val dismissPending = PendingIntent.getBroadcast(
-            context, 2, dismissIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        val dismissAction = NotificationCompat.Action.Builder(
-            android.R.drawable.ic_menu_close_clear_cancel, "关闭", dismissPending
-        ).build()
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Snake 内置授权")
@@ -392,7 +381,6 @@ object AdbAuth {
                 "打开开发者选项中的「无线调试 → 使用配对码配对设备」，保持弹窗开启，然后点下方按钮输入六位数字。"
             ))
             .addAction(action)
-            .addAction(dismissAction)
             .setAutoCancel(true)
             .setOngoing(false)
             .setOnlyAlertOnce(true)
@@ -401,16 +389,33 @@ object AdbAuth {
     }
 
     /**
-     * 配对输入通知在用户提交配对码后立即收起。
-     * ColorOS 等 ROM 在 RemoteInput 提交后会重建一次通知，单次 cancel 常被覆盖，
-     * 因此立即清一次、稍后再清一次。
+     * 提交配对码后立即收起输入通知。
+     *
+     * 直接 cancel 在部分 ROM（含 ColorOS）上会被忽略：带 RemoteInput 的通知在
+     * 输入结果回传完成前被系统视为「进行中」，cancel 命令会被丢弃。这里先用一个
+     * 没有任何 action 的同 id 通知替换它，解除锁定，再分几次延迟取消，
+     * 保证输入完六位码后通知自己消失，不需要用户手动划掉。
      */
     fun dismissPairingNotification(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
-        runCatching { nm.cancel(NOTIFICATION_ID) }
-        mainHandler.postDelayed({
-            runCatching { nm.cancel(NOTIFICATION_ID) }
-        }, 600L)
+        runCatching {
+            ensureChannel(context)
+            val stub = NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle("Snake 内置授权")
+                .setContentText("正在完成配对…")
+                .setPriority(NotificationCompat.PRIORITY_MIN)
+                .setSilent(true)
+                .setOngoing(false)
+                .setTimeoutAfter(1_500L)
+                .build()
+            nm.notify(NOTIFICATION_ID, stub)
+        }
+        listOf(250L, 1_000L, 2_500L).forEach { delay ->
+            mainHandler.postDelayed({
+                runCatching { nm.cancel(NOTIFICATION_ID) }
+            }, delay)
+        }
     }
 
     fun notifyResult(context: Context, message: String) {
