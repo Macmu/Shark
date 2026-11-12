@@ -51,6 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger
 object AdbAuth {
 
     const val ACTION_PAIR_CODE = "com.android.snake.ADB_PAIR_CODE"
+    const val ACTION_DISMISS = "com.android.snake.ADB_PAIR_DISMISS"
     const val KEY_PAIR_CODE = "pair_code"
 
     private const val CHANNEL_ID = "shark_adb_auth"
@@ -372,6 +373,17 @@ object AdbAuth {
         val action = NotificationCompat.Action.Builder(
             android.R.drawable.ic_dialog_info, "输入配对码", pending
         ).addRemoteInput(remoteInput).build()
+        // 尾随「关闭」动作：部分 ROM 会把带 RemoteInput 的通知钉在通知栏，
+        // 给用户一个确定的收起入口，否则只能等授权流程再次触发清理。
+        val dismissIntent = Intent(context, AdbPairingReceiver::class.java)
+            .setAction(ACTION_DISMISS)
+        val dismissPending = PendingIntent.getBroadcast(
+            context, 2, dismissIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val dismissAction = NotificationCompat.Action.Builder(
+            android.R.drawable.ic_menu_close_clear_cancel, "关闭", dismissPending
+        ).build()
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Snake 内置授权")
@@ -380,16 +392,25 @@ object AdbAuth {
                 "打开开发者选项中的「无线调试 → 使用配对码配对设备」，保持弹窗开启，然后点下方按钮输入六位数字。"
             ))
             .addAction(action)
-            .setAutoCancel(false)
+            .addAction(dismissAction)
+            .setAutoCancel(true)
+            .setOngoing(false)
+            .setOnlyAlertOnce(true)
             .build()
         context.getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, notification)
     }
 
-    /** 配对输入通知在用户提交配对码后立即收起，避免常驻通知栏。 */
+    /**
+     * 配对输入通知在用户提交配对码后立即收起。
+     * ColorOS 等 ROM 在 RemoteInput 提交后会重建一次通知，单次 cancel 常被覆盖，
+     * 因此立即清一次、稍后再清一次。
+     */
     fun dismissPairingNotification(context: Context) {
-        runCatching {
-            context.getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
-        }
+        val nm = context.getSystemService(NotificationManager::class.java) ?: return
+        runCatching { nm.cancel(NOTIFICATION_ID) }
+        mainHandler.postDelayed({
+            runCatching { nm.cancel(NOTIFICATION_ID) }
+        }, 600L)
     }
 
     fun notifyResult(context: Context, message: String) {

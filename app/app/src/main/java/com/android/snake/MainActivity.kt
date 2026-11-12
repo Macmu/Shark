@@ -263,6 +263,11 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         binderReady = PrivService.pick() != null
         refreshAuth()
+        // 配对常在通知栏完成，App 未必收到回调；回到前台时若已就绪就主动收起
+        // 配对输入通知，避免它一直挂在通知栏。
+        if (binderReady && authorized) {
+            runCatching { AdbAuth.dismissPairingNotification(applicationContext) }
+        }
         if (updateCheckedThisForeground) return
         updateCheckedThisForeground = true
         if (pendingUpdate != null) return
@@ -684,11 +689,13 @@ class MainActivity : ComponentActivity() {
             if (snapshot.isNotEmpty()) state.scrollToItem(snapshot.size - 1)
         }
         val ready = binderReady && authorized
-        Column(Modifier.fillMaxSize()) {
+        // 输入条固定在顶部：键盘弹起时只有输出区收缩，输入框位置不动，
+        // 不会再出现「一打字上面就全被顶没」的情况。
+        Column(Modifier.fillMaxSize().imePadding()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 2.dp),
+                    .padding(start = 20.dp, end = 16.dp, top = 2.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -704,12 +711,63 @@ class MainActivity : ComponentActivity() {
                     if (ready) Color(0xFF36D167) else palette.dim,
                     mono = true
                 )
+                Spacer(Modifier.weight(1f))
+                if (snapshot.isNotEmpty()) {
+                    Txt("清空", 12, palette.dim, modifier = Modifier.clickable { cmdLines.clear() })
+                }
             }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(palette.surface)
+                    .padding(start = 14.dp, end = 5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Txt("#", 15, palette.accent, FontWeight.Bold, mono = true)
+                Spacer(Modifier.width(9.dp))
+                BasicTextField(
+                    value = cmdInput,
+                    onValueChange = { cmdInput = it },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                    enabled = ready && !cmdRunning,
+                    cursorBrush = SolidColor(palette.accent),
+                    textStyle = TextStyle(
+                        color = palette.ink,
+                        fontSize = 15.sp,
+                        fontFamily = FontFamily.Monospace
+                    ),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { runCommand() }),
+                    decorationBox = { inner ->
+                        Box(contentAlignment = Alignment.CenterStart) {
+                            if (cmdInput.isEmpty()) {
+                                Txt("输入命令", 13, palette.dim.copy(alpha = 0.7f), mono = true)
+                            }
+                            inner()
+                        }
+                    }
+                )
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (ready) palette.accent else palette.line)
+                        .clickable(enabled = ready && !cmdRunning) { runCommand() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Txt(if (cmdRunning) "…" else "\u2197", 16, Color.White, FontWeight.Bold)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
             Box(
                 Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp)
+                    .padding(horizontal = 16.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(palette.surface)
             ) {
@@ -717,7 +775,7 @@ class MainActivity : ComponentActivity() {
                     Column(Modifier.padding(14.dp)) {
                         Txt("snake:/ #", 11.5f, palette.accent, mono = true)
                         Spacer(Modifier.height(4.dp))
-                        Txt("输入命令后回车执行，需要 root 的指令会自动申请权限。", 11, palette.dim, mono = true)
+                        Txt("输入命令后回车执行，需要 root 的指令会通过内置授权执行。", 11, palette.dim, mono = true)
                     }
                 } else {
                     LazyColumn(
@@ -742,7 +800,8 @@ class MainActivity : ComponentActivity() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .navigationBarsPadding()
+                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 listOf("id", "whoami", "getenforce", "ls /data/adb").forEach { quick ->
@@ -755,47 +814,6 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Txt(quick, 11, palette.dim, mono = true)
                     }
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .navigationBarsPadding()
-                    .imePadding()
-                    .padding(bottom = 10.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(palette.surface)
-                    .padding(start = 12.dp, end = 6.dp, top = 4.dp, bottom = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Txt("#", 13, palette.accent, FontWeight.Bold, mono = true)
-                Spacer(Modifier.width(8.dp))
-                BasicTextField(
-                    value = cmdInput,
-                    onValueChange = { cmdInput = it },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    enabled = ready && !cmdRunning,
-                    cursorBrush = SolidColor(palette.accent),
-                    textStyle = TextStyle(
-                        color = palette.ink,
-                        fontSize = 13.sp,
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { runCommand() })
-                )
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (ready) palette.accent else palette.line)
-                        .clickable(enabled = ready && !cmdRunning) { runCommand() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Txt(if (cmdRunning) "…" else "↗", 15, Color.White, FontWeight.Bold)
                 }
             }
         }

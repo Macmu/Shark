@@ -9,13 +9,18 @@ import androidx.core.app.RemoteInput
 class AdbPairingReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
+        val appContext = context.applicationContext
+        // 用户点通知上的「关闭」：只收起通知，不动授权状态。
+        if (intent.action == AdbAuth.ACTION_DISMISS) {
+            AdbAuth.dismissPairingNotification(appContext)
+            return
+        }
         if (intent.action != AdbAuth.ACTION_PAIR_CODE) return
         val bundle = RemoteInput.getResultsFromIntent(intent)
         val code = (bundle?.getCharSequence(AdbAuth.KEY_PAIR_CODE)?.toString()
             ?: intent.getStringExtra(AdbAuth.KEY_PAIR_CODE))
             ?.trim().orEmpty()
 
-        val appContext = context.applicationContext
         // 用户提交配对码后立刻收起输入通知；结果通知短暂停留后自动消失。
         AdbAuth.dismissPairingNotification(appContext)
 
