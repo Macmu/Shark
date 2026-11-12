@@ -22,7 +22,7 @@ Snake 是 [Shark](https://github.com/Yunnijian/Shark) 的改版：界面重做�
 
 <table align="center">
   <tr>
-    <td align="center"><img src="docs/screenshots/shot-home-v4.jpg" width="200" alt="首页"><br><sub><b>首页</b></sub></td>
+    <td align="center"><img src="docs/screenshots/shot-home-v5.jpg" width="200" alt="首页"><br><sub><b>首页</b></sub></td>
     <td align="center"><img src="docs/screenshots/shot-command-v1.jpg" width="200" alt="命令"><br><sub><b>命令</b></sub></td>
     <td align="center"><img src="docs/screenshots/shot-extras-v1.jpg" width="200" alt="扩展"><br><sub><b>扩展</b></sub></td>
     <td align="center"><img src="docs/screenshots/shot-about-v1.jpg" width="200" alt="关于"><br><sub><b>关于</b></sub></td>

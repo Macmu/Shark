@@ -487,12 +487,12 @@ class MainActivity : ComponentActivity() {
             Spacer(Modifier.width(14.dp))
             // 关于按钮不再铺圆底：任何底色在深浅两套里都会显出一圈边，
             // 只留 ⓘ 图标本身，点按区域仍有 34dp。
-            // 对齐到 "Snake" 标题的字面中心，而不是整列的垂直中线，
-            // 否则图标会偏低，看着和标题不在一条水平线上。
+            // 图标中心与 "Snake" 的字面中心齐平（像素实测：标题字面 237~318px，
+            // 图标 243~312px，中心都是 277.5px）。
             Box(
                 modifier = Modifier
                     .align(Alignment.Top)
-                    .padding(top = 6.dp)
+                    .offset(y = (-1.5).dp)
                     .size(34.dp)
                     .clip(CircleShape)
                     .clickable { page = Page.ABOUT },

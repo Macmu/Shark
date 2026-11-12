@@ -1,1 +1,1 @@
-d54ebba3c6e3490cf6eb802846f35a832afe3bbdd9a9b75b7ddd77b141a726d0  Snake-v1.1-auth.apk
+a21256fbb62420af4a743f5b970711d747dee029d51dd9bedf63be8c454980f2  Snake-v1.1-auth.apk
