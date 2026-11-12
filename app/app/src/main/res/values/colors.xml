@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 自适应图标背景：亮色纯白，暗色由 values-night 覆盖为纯黑 -->
+    <!-- 自适应图标背景：亮色纯白，暗色由 values-night 覆盖为纯黑。
+         前景是同一张位图，两套主题只换底色。 -->
     <color name="ic_launcher_background">#FFFFFF</color>
 </resources>

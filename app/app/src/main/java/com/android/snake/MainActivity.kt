@@ -1444,12 +1444,12 @@ class MainActivity : ComponentActivity() {
                         .background(if (palette.dark) Color.Black else Color.White),
                     contentAlignment = Alignment.Center
                 ) {
-                    // 前景是 108dp 画布，图形只占中间约 54%，按 88dp 画正好留出四周留白，
-                    // 头和尾巴都不会贴边被裁。
+                    // 专用图：主体已按 86% 预渲染好，这里直接铺满方框即可，
+                    // 不再依赖运行时缩放（之前被 56dp 约束压扁过）。
                     Image(
-                        painter = painterResource(R.drawable.ic_launcher_foreground),
+                        painter = painterResource(R.drawable.about_icon),
                         contentDescription = null,
-                        modifier = Modifier.size(88.dp)
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
                 Spacer(Modifier.width(14.dp))
