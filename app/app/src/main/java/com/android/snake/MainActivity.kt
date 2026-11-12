@@ -70,6 +70,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -318,7 +323,7 @@ class MainActivity : ComponentActivity() {
         val dim = if (dark) Color(0xFF8B9098) else scheme.onSurfaceVariant
         val accent = if (dark) Color(0xFF7FB4FF) else scheme.accent
         val line = if (dark) Color(0xFF23262B) else ink.copy(alpha = 0.08f)
-        val surface = if (dark) Color(0xFF181A1E) else scheme.surface
+        val surface = if (dark) Color(0xFF1B1D22) else scheme.surface
 
         val palette = Palette(background, surface, ink, dim, accent, line, dark)
 
@@ -485,12 +490,15 @@ class MainActivity : ComponentActivity() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Txt(label, 13, palette.dim, modifier = Modifier.width(64.dp))
+                // 完整 uname 常常 40+ 字符，marquee 滚一次会停在末尾、看起来像丢了前缀；
+                // 换成单行省略，匹配结果已由标题下方的 CVE 行给出。
                 Txt(
                     value,
-                    13,
+                    12.5f,
                     palette.ink,
                     FontWeight.Medium,
-                    modifier = Modifier.weight(1f).basicMarquee(iterations = 1)
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1
                 )
             }
             Box(Modifier.fillMaxWidth().height(1.dp).background(palette.line))
@@ -598,13 +606,17 @@ class MainActivity : ComponentActivity() {
                 .background(palette.surface)
         ) {
             if (snapshot.isEmpty()) {
-                Column(Modifier.fillMaxSize().padding(14.dp)) {
+                Box(
+                    Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Txt(
                         if (binderReady && authorized) "已就绪，点右下角开始越狱。"
                         else "尚未授权。点右下角「一键授权」，按提示输入无线调试的六位配对码。",
                         11.5f,
                         palette.dim,
-                        mono = true
+                        mono = true,
+                        align = TextAlign.Center
                     )
                 }
             } else {
@@ -706,7 +718,7 @@ class MainActivity : ComponentActivity() {
                 )
                 Spacer(Modifier.width(6.dp))
                 Txt(
-                    if (ready) "root" else "未授权",
+                    if (ready) "root" else "shell",
                     11,
                     if (ready) Color(0xFF36D167) else palette.dim,
                     mono = true
@@ -731,9 +743,21 @@ class MainActivity : ComponentActivity() {
                 BasicTextField(
                     value = cmdInput,
                     onValueChange = { cmdInput = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        // 外接键盘 / 遥控器的物理回车也要能执行，不能只依赖软键盘的「发送」。
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown &&
+                                (event.key == Key.Enter || event.key == Key.NumPadEnter)
+                            ) {
+                                runCommand()
+                                true
+                            } else {
+                                false
+                            }
+                        },
                     singleLine = true,
-                    enabled = ready && !cmdRunning,
+                    enabled = !cmdRunning,
                     cursorBrush = SolidColor(palette.accent),
                     textStyle = TextStyle(
                         color = palette.ink,
@@ -755,8 +779,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(38.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(if (ready) palette.accent else palette.line)
-                        .clickable(enabled = ready && !cmdRunning) { runCommand() },
+                        .background(palette.accent.copy(alpha = if (cmdRunning) 0.4f else 1f))
+                        .clickable(enabled = !cmdRunning) { runCommand() },
                     contentAlignment = Alignment.Center
                 ) {
                     Txt(if (cmdRunning) "…" else "\u2197", 16, Color.White, FontWeight.Bold)
@@ -772,10 +796,21 @@ class MainActivity : ComponentActivity() {
                     .background(palette.surface)
             ) {
                 if (snapshot.isEmpty()) {
-                    Column(Modifier.padding(14.dp)) {
-                        Txt("snake:/ #", 11.5f, palette.accent, mono = true)
-                        Spacer(Modifier.height(4.dp))
-                        Txt("输入命令后回车执行，需要 root 的指令会通过内置授权执行。", 11, palette.dim, mono = true)
+                    Box(
+                        Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Txt("snake:/ #", 11.5f, palette.accent, mono = true)
+                            Spacer(Modifier.height(6.dp))
+                            Txt(
+                                "输入命令后回车执行，需要 root 的指令会通过内置授权执行。",
+                                11,
+                                palette.dim,
+                                mono = true,
+                                align = TextAlign.Center
+                            )
+                        }
                     }
                 } else {
                     LazyColumn(
@@ -969,13 +1004,15 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(15.dp))
-                        .background(if (palette.dark) Color(0xFF15171B) else Color.White),
+                        .background(if (palette.dark) Color(0xFF24331E) else Color.White),
                     contentAlignment = Alignment.Center
                 ) {
+                    // 前景图是 108dp 画布，图形只占中间约 66%，所以这里放大到 60dp，
+                    // 尾巴才不会贴边被裁。
                     Image(
                         painter = painterResource(R.drawable.ic_launcher_foreground),
                         contentDescription = null,
-                        modifier = Modifier.size(66.dp)
+                        modifier = Modifier.size(60.dp)
                     )
                 }
                 Spacer(Modifier.width(14.dp))
