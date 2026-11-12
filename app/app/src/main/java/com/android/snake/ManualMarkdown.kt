@@ -1,4 +1,4 @@
-package com.shark.kty
+package com.android.snake
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll

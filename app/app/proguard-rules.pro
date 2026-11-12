@@ -1,6 +1,6 @@
 -keep class moe.shizuku.** { *; }
 -keep class rikka.shizuku.** { *; }
--keep class com.shark.kty.MainActivity { *; }
+-keep class com.android.snake.MainActivity { *; }
 -dontwarn moe.shizuku.**
 -dontwarn rikka.shizuku.**
 -keep class roro.stellar.** { *; }
@@ -12,12 +12,12 @@
 -keep class io.github.muntashirakon.** { *; }
 -keep class org.conscrypt.** { *; }
 -keep class org.bouncycastle.** { *; }
--keep class com.shark.kty.AdbAuth { *; }
--keep class com.shark.kty.AdbAuth$** { *; }
--keep class com.shark.kty.AdbPairingReceiver { *; }
--keep class com.shark.kty.PrivService { *; }
--keep class com.shark.kty.PrivProcess { *; }
--keep class com.shark.kty.PrivBackend { *; }
+-keep class com.android.snake.AdbAuth { *; }
+-keep class com.android.snake.AdbAuth$** { *; }
+-keep class com.android.snake.AdbPairingReceiver { *; }
+-keep class com.android.snake.PrivService { *; }
+-keep class com.android.snake.PrivProcess { *; }
+-keep class com.android.snake.PrivBackend { *; }
 -dontwarn io.github.muntashirakon.**
 -dontwarn org.conscrypt.**
 -dontwarn org.bouncycastle.**

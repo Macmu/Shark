@@ -1,4 +1,4 @@
-package com.shark.kty
+package com.android.snake
 
 import android.content.BroadcastReceiver
 import android.content.Context

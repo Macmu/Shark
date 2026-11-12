@@ -1,4 +1,4 @@
-package com.shark.kty
+package com.android.snake
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Shark 内置授权后端。
+ * Snake 内置授权后端。
  *
  * 通过无线调试（ADB over TLS）在本应用进程内直接与本机 adbd 建立会话，
  * 不再要求额外安装并启动 Shizuku / Stellar。ADB 协议与配对实现来自
@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 object AdbAuth {
 
-    const val ACTION_PAIR_CODE = "com.shark.kty.ADB_PAIR_CODE"
+    const val ACTION_PAIR_CODE = "com.android.snake.ADB_PAIR_CODE"
     const val KEY_PAIR_CODE = "pair_code"
 
     private const val CHANNEL_ID = "shark_adb_auth"
@@ -332,7 +332,7 @@ object AdbAuth {
         val generator = KeyPairGenerator.getInstance("RSA")
         generator.initialize(2048)
         val pair = generator.generateKeyPair()
-        val subject = X500Name("CN=Shark ADB Client")
+        val subject = X500Name("CN=Snake ADB Client")
         val now = System.currentTimeMillis()
         val builder = JcaX509v3CertificateBuilder(
             subject,
@@ -354,7 +354,7 @@ object AdbAuth {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
         if (nm.getNotificationChannel(CHANNEL_ID) == null) {
             nm.createNotificationChannel(
-                NotificationChannel(CHANNEL_ID, "Shark 内置授权", NotificationManager.IMPORTANCE_HIGH).apply {
+                NotificationChannel(CHANNEL_ID, "Snake 内置授权", NotificationManager.IMPORTANCE_HIGH).apply {
                     description = "无线调试配对码输入与连接结果"
                 }
             )
@@ -374,7 +374,7 @@ object AdbAuth {
         ).addRemoteInput(remoteInput).build()
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Shark 内置授权")
+            .setContentTitle("Snake 内置授权")
             .setContentText("打开「无线调试 → 使用配对码配对设备」，在此输入六位配对码")
             .setStyle(NotificationCompat.BigTextStyle().bigText(
                 "打开开发者选项中的「无线调试 → 使用配对码配对设备」，保持弹窗开启，然后点下方按钮输入六位数字。"
@@ -398,7 +398,7 @@ object AdbAuth {
         val nm = context.getSystemService(NotificationManager::class.java)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle("Shark 内置授权")
+            .setContentTitle("Snake 内置授权")
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setAutoCancel(true)

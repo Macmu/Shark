@@ -13,7 +13,7 @@ plugins {
 }
 
 android {
-    namespace = "com.shark.kty"
+    namespace = "com.android.snake"
     compileSdk {
         version = release(37) {
             minorApiLevel = 0
@@ -21,7 +21,7 @@ android {
     }
     buildToolsVersion = "37.0.0"
     defaultConfig {
-        applicationId = "com.shark.kty"
+        applicationId = "com.android.snake"
         minSdk = 33
         targetSdk = 37
         versionCode = 91

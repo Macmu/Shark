@@ -1,14 +1,14 @@
-# Shark 使用手册
+# Snake 使用手册
 
-Shark 通过内置授权（App 自身连接本机无线调试）以 shell 身份驱动设备端 98260 exploit，加载管理器 LKM。首次使用先完成一次无线调试配对，再一键越狱，无需安装 Shizuku / Stellar。
+Snake 通过内置授权（App 自身连接本机无线调试）以 shell 身份驱动设备端 98260 exploit，加载管理器 LKM。首次使用先完成一次无线调试配对，再一键越狱，无需安装 Shizuku / Stellar。
 
-> Shark 目前支持 6.18.21、6.12.69、6.12.38、6.12.58、6.12.23 与 6.6.118 内核的欧加系设备，按完整 `uname -r` 精确匹配；未匹配的机型会提示不支持。
+> Snake 目前支持 6.18.21、6.12.69、6.12.38、6.12.58、6.12.23 与 6.6.118 内核的欧加系设备，按完整 `uname -r` 精确匹配；未匹配的机型会提示不支持。
 
 ## 快速开始
 
 1. 先安装所选 ROOT 管理器（KernelSU / FinaSU / KernelSU Next / BakaSU / SukiSU Ultra），**暂不支持ci版本的 KernelSU Next**。
 2. 首页点「连接设备（内置授权）」：授予本地网络/通知权限后，打开开发者选项的「无线调试 → 使用配对码配对设备」，保持弹窗开启，在通知栏输入六位配对码。配对成功后首页状态卡变绿。**不需要安装或启动 Shizuku / Stellar**；配对码每次重启会变，重启后需重新配对，锁屏或关闭无线调试可能导致断连，回到首页会自动尝试重连。
-3. 回到 Shark 首页点「一键越狱」，等待成功日志；以 `DONE`、`SU_ID_RC=0` 和 `uid=0(root)` 为准。
+3. 回到 Snake 首页点右下角「一键越狱」，等待成功日志；以 `DONE`、`SU_ID_RC=0` 和 `uid=0(root)` 为准。
 4. 成功后管理器会自动拉起；开启对应开关时还会停用安全弹窗、加载 **SUSFS**（6.18/6.12 线；6.12 使用 `libsusfs_guard_lkm_612.so`）或 **VFS**（仅 6.18.21）。
 5. 若日志显示 **MODULE NOT LOADED**，无需重启设备，直接再次尝试越狱即可。
 6. 每次进入 App 会自动检查更新：Gitee Releases 优先，GitHub 兜底；发现新版本会弹窗，可直接下载并交给系统安装器。也可在「关于」页手动点「检查更新」。
@@ -35,8 +35,8 @@ Shark 通过内置授权（App 自身连接本机无线调试）以 shell 身份
 - **日志**：本次运行的实时流式日志。
 - **历史**：每次运行保存一个 `.log`；点开看全文，左滑条目露出「导出」按钮，可分享给其他应用。
 - **关于**：版本号、检查更新、源代码 / 加入社区 / 问题反馈入口，以及由 AboutLibraries 生成的依赖清单（按库显示版本与许可证，点开可看详情）和随 APK 离线内置的开源许可全文（GPL-3.0、NOTICE、Apache-2.0、MIT、GPL-2.0、MPL-2.0）。
-- **拓展功能 → Droidspaces 支持**（仅 6.18.21）：点「下载模块」会获取 GitHub 上 `Droidspaces-LKM` 的最新 release，确认后下载模块 zip；文件保存到 `Download/Shark/`，之后到 KernelSU 管理器「模块 → 安装」选择该文件刷入。模块不内置在 APK 中。
-- **ROOT 管理器 → Dynamic Switching**（6.18.21 / 6.12.69 / 6.12.38 / 6.12.58 / 6.12.23；6.6.118 不支持）：选中后首次干净 boot 运行一次，由 `libksud_universal.so` 加载通用 KSU LKM（初始 KernelSU，内嵌 6.18/6.12 双 KMI KO）。加载后拓展功能出现「管理器热切换」项，可在 KernelSU / KernelSU-Next / BakaSU / SukiSU / FinaSU 间切换，无需重启或重新越狱；切换后重新打开目标管理器 App。
+- **扩展 → Droidspaces 支持**（仅 6.18.21）：点「下载模块」会获取 GitHub 上 `Droidspaces-LKM` 的最新 release，确认后下载模块 zip；文件保存到 `Download/Snake/`，之后到 KernelSU 管理器「模块 → 安装」选择该文件刷入。模块不内置在 APK 中。
+- **ROOT 管理器 → Dynamic Switching**（6.18.21 / 6.12.69 / 6.12.38 / 6.12.58 / 6.12.23；6.6.118 不支持）：选中后首次干净 boot 运行一次，由 `libksud_universal.so` 加载通用 KSU LKM（初始 KernelSU，内嵌 6.18/6.12 双 KMI KO）。加载后扩展出现「管理器热切换」项，可在 KernelSU / KernelSU-Next / BakaSU / SukiSU / FinaSU 间切换，无需重启或重新越狱；切换后重新打开目标管理器 App。
 
 ## 异常处理
 

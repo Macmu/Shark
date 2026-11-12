@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Snake 图标前景：正面蝰蛇头 + 竖椭圆眼 + 分叉信子（亮色版） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <group
+        android:scaleX="0.9"
+        android:scaleY="0.9"
+        android:pivotX="256"
+        android:pivotY="256"
+        android:translateY="10">
+
+        <path
+            android:fillColor="#0A6BFF"
+            android:pathData="M226,96 C236,90 246,88 256,88 C266,88 276,90 286,96 C330,150 362,210 378,252 C388,278 376,302 352,316 C322,332 290,342 256,342 C222,342 190,332 160,316 C136,302 124,278 134,252 C150,210 182,150 226,96 Z" />
+
+        <group
+            android:pivotX="205"
+            android:pivotY="238"
+            android:rotation="-24">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M193,238 a12,34 0 1,0 24,0 a12,34 0 1,0 -24,0" />
+        </group>
+
+        <group
+            android:pivotX="307"
+            android:pivotY="238"
+            android:rotation="24">
+            <path
+                android:fillColor="#FFFFFF"
+                android:pathData="M295,238 a12,34 0 1,0 24,0 a12,34 0 1,0 -24,0" />
+        </group>
+
+        <path
+            android:pathData="M256,334 L256,372 M256,372 L230,402 M256,372 L282,402"
+            android:strokeColor="#0A6BFF"
+            android:strokeWidth="18"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+    </group>
+</vector>

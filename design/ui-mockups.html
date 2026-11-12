@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Snake · 极简单页布局稿</title>
+<style>
+  :root{
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+
+    /* light = 现有配色 */
+    --bg:#F4F5F7;
+    --card:#FFFFFF;
+    --inset:#F6F7F9;
+    --line:rgba(17,20,24,.07);
+    --txt:#101114;
+    --txt2:#5B6169;
+    --dim:#878D95;
+    --faint:#A8AEB6;
+    --accent:#0A59F7;
+    --accent-soft:rgba(10,89,247,.07);
+    --accent-line:rgba(10,89,247,.20);
+    --ok:#0E9F6E;
+    --ok-soft:rgba(14,159,110,.09);
+    --warn:#D98200;
+    --soft:#EFF1F4;
+    --soft-line:rgba(17,20,24,.06);
+    --shadow:0 1px 2px rgba(16,18,22,.05), 0 8px 24px -18px rgba(16,18,22,.28);
+    --dockfade:rgba(244,245,247,0);
+    --bezel:#DDE0E4;
+    --bezel2:#C9CED4;
+  }
+  body.dark{
+    --bg:#101114;
+    --card:#191A1E;
+    --inset:#111216;
+    --line:rgba(255,255,255,.07);
+    --txt:#F2F3F5;
+    --txt2:#9BA1A9;
+    --dim:#7C828A;
+    --faint:#5D636B;
+    --accent:#4C93FF;
+    --accent-soft:rgba(76,147,255,.12);
+    --accent-line:rgba(76,147,255,.24);
+    --ok:#3DDC97;
+    --ok-soft:rgba(61,220,151,.12);
+    --warn:#E3B341;
+    --soft:#23252B;
+    --soft-line:rgba(255,255,255,.08);
+    --shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+    --dockfade:rgba(16,17,20,0);
+    --bezel:#1B1D21;
+    --bezel2:#2A2D33;
+  }
+
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  html,body{margin:0;background:#E9EAEC;color:#14161A;font-family:var(--sans);}
+  body{padding:48px 40px 80px;transition:background .25s,color .25s}
+  body.dark{background:#0A0B0D;color:#F2F3F5}
+
+  .head{max-width:1400px;margin:0 auto 40px;display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap}
+  .head .l{flex:1;min-width:320px}
+  .kicker{font-size:11.5px;letter-spacing:.22em;color:#8B9098;text-transform:uppercase;margin-bottom:12px}
+  h1.title{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px}
+  .head p{margin:0;font-size:13.5px;line-height:1.75;color:#5D636B;max-width:720px}
+  body.dark .head p{color:#9BA1A9}
+  .head b{color:#14161A;font-weight:600}
+  body.dark .head b{color:#F2F3F5}
+  .toggle{display:flex;background:#DDDFE3;border-radius:12px;padding:3px;gap:2px;flex:0 0 auto}
+  .toggle button{border:none;background:none;font-family:inherit;font-size:12.5px;font-weight:600;color:#5D636B;
+    padding:8px 16px;border-radius:9px;cursor:pointer;transition:.2s}
+  .toggle button.on{background:#fff;color:#101114;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  body.dark .toggle{background:#232529}
+  body.dark .toggle button{color:#9BA1A9}
+  body.dark .toggle button.on{background:#3A3E46;color:#fff}
+
+  .stage{max-width:1400px;margin:0 auto;display:flex;flex-wrap:wrap;gap:46px 36px;justify-content:center;align-items:flex-start}
+  .col{width:390px;flex:0 0 390px}
+  .cap{margin-bottom:14px}
+  .cap .name{font-size:15.5px;font-weight:650}
+  .cap .name em{font-style:normal;color:#8B9098;font-weight:500;font-size:12.5px;margin-left:8px}
+  body.dark .cap .name em{color:#6A7078}
+  .cap .desc{margin-top:5px;font-size:12.5px;line-height:1.65;color:#6E747C}
+  body.dark .cap .desc{color:#878D95}
+
+  .phone{position:relative;width:390px;height:844px;border-radius:46px;overflow:hidden;background:var(--bg);color:var(--txt);
+    box-shadow:0 0 0 9px var(--bezel),0 0 0 10px var(--bezel2),0 26px 60px -24px rgba(16,18,22,.45);
+    display:flex;flex-direction:column;transition:background .25s,color .25s}
+  body.dark .phone{box-shadow:0 0 0 9px #1B1D21,0 0 0 10px #2C3037,0 30px 70px -20px rgba(0,0,0,.9)}
+  .phone::before{content:"";position:absolute;top:10px;left:50%;transform:translateX(-50%);width:100px;height:24px;border-radius:20px;
+    background:#000;opacity:.92;z-index:40}
+  .sb{flex:0 0 46px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 8px;
+    font-size:12.5px;font-weight:600;letter-spacing:.02em;color:var(--txt);z-index:30}
+  .sb .r{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600}
+  .bars{display:flex;align-items:flex-end;gap:2px;height:9px}
+  .bars i{width:2.5px;background:var(--txt);border-radius:1px}
+  .bars i:nth-child(1){height:3px}.bars i:nth-child(2){height:5px}.bars i:nth-child(3){height:7px}.bars i:nth-child(4){height:9px}
+  .batt{width:21px;height:10.5px;border:1.3px solid var(--txt);border-radius:3px;position:relative;opacity:.85}
+  .batt::after{content:"";position:absolute;inset:1.5px;width:13px;background:var(--txt);border-radius:1.5px}
+
+  .body{flex:1;min-height:0;display:flex;flex-direction:column;padding:0 18px}
+  .scroll{flex:1;min-height:0;display:flex;flex-direction:column;gap:12px}
+
+  /* shared */
+  .card{background:var(--card);border-radius:20px;padding:0 14px;box-shadow:var(--shadow);border:1px solid var(--line)}
+  .card-head{display:flex;align-items:center;gap:8px;height:45px;font-size:13px;font-weight:600}
+  .card-head .chip{margin-left:auto;background:var(--soft);color:var(--dim);font-size:11px;font-weight:500;padding:5px 9px;border-radius:8px}
+  .card-head .chip.mono{font-family:var(--mono);letter-spacing:-.01em}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+  .dot.run{background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .dot.idle{background:var(--faint);box-shadow:0 0 0 3px rgba(128,128,128,.12)}
+  .row{display:flex;align-items:center;justify-content:space-between;height:43px;border-top:1px solid var(--line);font-size:12.5px}
+  .row .k{color:var(--dim)}
+  .row .v{display:flex;align-items:center;gap:6px;font-weight:500;font-size:12.5px}
+  .row .v.mono{font-family:var(--mono);font-size:11.5px}
+  .chev{opacity:.38}
+  .ic{width:17px;height:17px;stroke:currentColor;stroke-width:1.7;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+  .dock{flex:0 0 auto;display:flex;gap:9px;padding:10px 18px 22px;
+    background:linear-gradient(180deg,var(--dockfade) 0%,var(--bg) 62%)}
+  .btn{border:none;font-family:inherit;font-size:13px;font-weight:600;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    gap:6px;cursor:pointer;letter-spacing:.01em}
+  .btn.sq{width:56px;height:52px;flex:0 0 56px;background:var(--soft);color:var(--txt2);border:1px solid var(--soft-line)}
+  .btn.mid{width:96px;height:52px;flex:0 0 96px;background:var(--soft);color:var(--txt2);border:1px solid var(--soft-line)}
+  .btn.pri{flex:1;height:52px;background:var(--accent);color:#fff;font-size:15px;border-radius:18px;
+    box-shadow:0 8px 20px -10px var(--accent-line),0 2px 6px rgba(10,89,247,.18)}
+  body.dark .btn.pri{box-shadow:0 10px 26px -12px rgba(76,147,255,.6)}
+
+  pre.log{margin:0;font-family:var(--mono);font-size:10.5px;line-height:1.72;color:var(--txt2);letter-spacing:-.01em;overflow:hidden;width:100%}
+  .logbox{flex:1;min-height:0;display:flex;align-items:flex-start;overflow:hidden}
+  pre.log .tm{color:var(--faint)}
+  pre.log .ok{color:var(--ok)}
+  pre.log .w{color:var(--warn)}
+  pre.log .p{color:var(--dim)}
+
+  /* ============ A ============ */
+  .a .h1{font-size:34px;font-weight:700;letter-spacing:-.025em;margin:12px 0 0;line-height:1.1}
+  .a .sub{font-size:11.5px;color:var(--dim);margin:6px 0 4px}
+  .a .pct{display:flex;align-items:flex-end;gap:4px;padding:0 0 12px}
+  .a .pct .num{font-size:44px;font-weight:600;line-height:.9;letter-spacing:-.03em}
+  .a .pct .sym{font-size:15px;color:var(--dim);font-weight:500;margin-bottom:3px}
+  .a .pct .st{margin-left:auto;font-size:12.5px;font-weight:500;color:var(--txt2);margin-bottom:5px}
+  .bar{height:3px;border-radius:2px;background:var(--soft);overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+
+  .reel{margin:14px -14px 14px;height:130px;overflow:hidden;position:relative;
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%);
+    mask-image:linear-gradient(180deg,transparent 0,#000 14px,#000 calc(100% - 14px),transparent 100%)}
+  .ri{display:flex;align-items:center;gap:11px;height:43px;padding:0 14px}
+  .ri .n{width:21px;height:21px;flex:0 0 21px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;
+    font-family:var(--mono);background:var(--soft);color:var(--dim)}
+  .ri .t{font-size:13px;font-weight:500;color:var(--txt2)}
+  .ri .s{margin-left:auto;font-size:11px;color:var(--faint);font-family:var(--mono)}
+  .ri.past .n{background:var(--ok-soft);color:var(--ok)}
+  .ri.past .t{color:var(--dim)}
+  .ri.now{background:var(--accent-soft);border-radius:14px;margin:0 6px;padding:0 8px;box-shadow:inset 0 0 0 1px var(--accent-line)}
+  .ri.now .n{background:var(--accent);color:#fff}
+  .ri.now .t{color:var(--txt);font-weight:600}
+  .ri.now .s{color:var(--accent)}
+
+  .a .out{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:10px}
+  .a .out .card-head{height:36px;font-size:12px;color:var(--dim)}
+  .a .logbox{background:var(--inset);border-top:1px solid var(--line);margin:0 -14px -10px;padding:9px 14px 6px;border-radius:0 0 20px 20px}
+
+  /* ============ B ============ */
+  .b .top{display:flex;align-items:center;justify-content:space-between;margin:14px 2px 16px}
+  .b .h1{font-size:32px;font-weight:700;letter-spacing:-.03em;margin:0;line-height:1}
+  .live{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--accent);
+    background:var(--accent-soft);padding:6px 10px;border-radius:20px}
+  .live i{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+  .big{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);
+    border-radius:26px;padding:19px 17px 13px;box-shadow:var(--shadow)}
+  .b .model{display:flex;align-items:baseline;gap:8px}
+  .b .model b{font-size:14.5px;font-weight:600}
+  .b .model span{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .b .kv{font-size:11px;color:var(--faint);margin-top:5px;font-family:var(--mono);letter-spacing:-.01em}
+  .b .mgr{display:flex;align-items:center;gap:6px;margin-top:13px;background:var(--soft);border:1px solid var(--soft-line);
+    border-radius:12px;padding:9px 11px;color:var(--txt);font-family:inherit;font-size:11.5px;font-weight:500;width:100%;cursor:pointer}
+  .b .mgr .lbl{color:var(--dim);font-weight:400}
+  .b .mgr .arw{margin-left:auto;color:var(--faint);display:flex}
+  .b .cur{margin-top:20px}
+  .b .cur .n{font-size:21px;font-weight:650;letter-spacing:-.01em}
+  .b .cur .n em{font-style:normal;font-size:11px;font-weight:500;color:var(--dim);margin-left:8px}
+  .b .cur .p{display:flex;align-items:baseline;gap:3px;margin-top:6px}
+  .b .cur .p b{font-size:28px;font-weight:600;letter-spacing:-.02em}
+  .b .cur .p s{text-decoration:none;font-size:11.5px;color:var(--dim)}
+  .b .cur .p i{margin-left:auto;font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+  .rail{display:flex;gap:4px;margin-top:8px}
+  .rail i{flex:1;height:4px;border-radius:2px;background:var(--soft)}
+  .rail i.done{background:var(--ok)}
+  .rail i.now{background:var(--accent)}
+  .b .panel{flex:1;min-height:0;margin-top:18px;background:var(--inset);border:1px solid var(--line);border-radius:16px;
+    padding:11px 11px 6px;display:flex;flex-direction:column}
+  .b .panel .ph{font-size:10px;color:var(--faint);font-family:var(--mono);margin-bottom:7px;letter-spacing:.04em}
+  .b .logbox{flex:1;min-height:0}
+  .b .dock{padding-top:14px;background:none}
+  .b .btn.sq,.b .btn.mid{background:transparent;border:1px solid var(--line);color:var(--txt2)}
+
+  /* ============ C ============ */
+  .c .body{padding:0 20px}
+  .c .top{margin:16px 0 0;display:flex;align-items:flex-end;gap:9px}
+  .c .h1{font-size:31px;font-weight:700;letter-spacing:-.03em;margin:0;line-height:1}
+  .c .h1 span{color:var(--accent)}
+  .c .cve{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.04em;margin-bottom:3px}
+  .c .meta{margin-top:16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:2px 0}
+  .c .mrow{display:flex;align-items:center;height:30px;font-size:11.5px}
+  .c .mrow span.k{color:var(--dim);width:70px;flex:0 0 70px}
+  .c .mrow b{font-weight:500;font-size:11.5px}
+  .c .mrow b.mono{font-family:var(--mono);font-size:11px}
+  .c .mrow .arw{margin-left:auto;color:var(--faint);display:flex}
+  .c .mrow.tap b{color:var(--accent)}
+  .c .prog{margin-top:16px}
+  .c .pline{display:flex;align-items:baseline;gap:8px}
+  .c .pline .st{font-size:16.5px;font-weight:600}
+  .c .pline .pc{margin-left:auto;font-family:var(--mono);font-size:18px;font-weight:600;color:var(--accent)}
+  .c .pline .pc s{text-decoration:none;font-size:10.5px;color:var(--faint);margin-left:1px}
+  .c .seg{display:flex;gap:3px;margin-top:9px}
+  .c .seg i{flex:1;height:5px;border-radius:1px;background:var(--soft)}
+  .c .seg i.done{background:var(--ok)}
+  .c .seg i.now{background:var(--accent)}
+  .c .tick{margin-top:10px;font-family:var(--mono);font-size:10.5px;color:var(--dim);display:flex;gap:6px;align-items:center}
+  .c .tick em{font-style:normal;color:var(--accent)}
+  .c .tick .el{margin-left:auto;color:var(--faint)}
+  .c .logwrap{flex:1;min-height:0;margin-top:14px;display:flex;flex-direction:column}
+  .c .logwrap::before{content:"OUTPUT";font-family:var(--mono);font-size:8.5px;letter-spacing:.24em;color:var(--faint);margin-bottom:6px}
+  .c .logbox{flex:1;min-height:0;border-top:1px solid var(--line);padding-top:8px}
+  .c pre.log{font-size:10.5px;line-height:1.78;color:var(--txt2)}
+  .c .dock{background:none;padding:12px 20px 22px}
+  .c .btn.sq,.c .btn.mid{background:transparent;border:1px solid var(--line);color:var(--txt2)}
+  .c .btn.pri{border-radius:14px;font-family:var(--mono);font-size:13.5px;letter-spacing:.02em}
+
+  /* spec */
+  .spec{max-width:1400px;margin:64px auto 0;border-top:1px solid rgba(20,22,26,.12);padding-top:26px;
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px 38px}
+  body.dark .spec{border-color:rgba(255,255,255,.1)}
+  .spec h3{font-size:11px;letter-spacing:.18em;color:#8B9098;text-transform:uppercase;margin:0 0 9px;font-weight:600}
+  .spec p,.spec li{font-size:12.5px;line-height:1.75;color:#5D636B;margin:0}
+  body.dark .spec p,body.dark .spec li{color:#9BA1A9}
+  .spec ul{margin:0;padding-left:15px}
+  .spec b{color:#14161A;font-weight:600}
+  body.dark .spec b{color:#F2F3F5}
+  .spec s{color:#9AA0A6}
+  .note{max-width:1400px;margin:28px auto 0;font-size:11.5px;color:#8B9098;line-height:1.8}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="l">
+    <div class="kicker">Snake · 极简单页</div>
+    <h1 class="title">三套布局，选定后我再改代码</h1>
+    <p>三张图都只保留一页：<b>标题 → 设备信息 → 越狱进度 → 命令输出 → 底部三入口</b>。默认亮色沿用现在的配色，暗色为深灰（不是纯黑），右上角可切换对比。SELinux、tracefs、关于、历史、日志页全部移除。</p>
+  </div>
+  <div class="toggle">
+    <button id="tLight" class="on">亮色</button>
+    <button id="tDark">暗色</button>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ============ A ============ -->
+  <div class="col">
+    <div class="cap">
+      <div class="name">A · 三段卡片 <em>最贴近你给的参考</em></div>
+      <div class="desc">设备 / 进度 / 输出各一张卡，从上到下依次排布；进度卡内只露 3 行环节，当前项高亮，旧的往上淡出。</div>
+    </div>
+
+    <div class="phone a">
+      <div class="sb"><span>21:54</span><span class="r"><span class="bars"><i></i><i></i><i></i><i></i></span>5G<span class="batt"></span></span></div>
+      <div class="body">
+        <div class="scroll">
+          <div>
+            <div class="h1">Snake</div>
+            <div class="sub">CVE-2026-98260 · 自实现提权</div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><span class="dot"></span>设备<span class="chip">OPPO Find X8 Ultra</span></div>
+            <div class="row"><span class="k">内核版本</span><span class="v mono">6.6.118-android15</span></div>
+            <div class="row"><span class="k">管理器</span><span class="v" style="color:var(--accent)">BakaSU v4.2.0
+              <svg class="ic chev" width="13" height="13" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><span class="dot run"></span>越狱进度<span class="chip mono">00:42</span></div>
+            <div class="pct"><span class="num">42</span><span class="sym">%</span><span class="st">校准与泄漏</span></div>
+            <div class="bar"><i style="width:42%"></i></div>
+            <div class="reel">
+              <div class="ri past"><span class="n">✓</span><span class="t">落地与自检</span><span class="s">1.8s</span></div>
+              <div class="ri past"><span class="n">✓</span><span class="t">内核档案</span><span class="s">6.2s</span></div>
+              <div class="ri now"><span class="n">3</span><span class="t">校准与泄漏</span><span class="s">进行中</span></div>
+              <div class="ri"><span class="n">4</span><span class="t">四次写入</span><span class="s">待执行</span></div>
+              <div class="ri"><span class="n">5</span><span class="t">管理器接管</span><span class="s">待执行</span></div>
+            </div>
+          </div>
+
+          <div class="card out">
+            <div class="card-head"><span>输出</span><span class="chip mono">实时</span></div>
+            <div class="logbox"><pre class="log"><span class="tm">[42.1]</span> probe kernel <span class="p">6.6.118-android15</span> <span class="ok">ok</span>
+<span class="tm">[42.6]</span> kaslr slide <span class="p">0x1c000000</span>
+<span class="tm">[43.0]</span> cred offset <span class="p">0x7c8</span> <span class="ok">ok</span>
+<span class="tm">[43.4]</span> write 1/4 fake_cred <span class="ok">ok</span>
+<span class="tm">[43.9]</span> write 2/4 selinux_enforcing <span class="ok">ok</span>
+<span class="tm">[44.2]</span> write 3/4 uid <span class="p">0 -&gt; 0</span> <span class="ok">ok</span>
+<span class="tm">[44.8]</span> write 4/4 cred-&gt;uid=0 <span class="ok">ok</span>
+<span class="tm">[45.1]</span> verify uid=<span class="p">0</span> gid=<span class="p">0</span> <span class="ok">ok</span>
+<span class="tm">[45.6]</span> loading manager module <span class="w">…</span></pre></div>
+          </div>
+        </div>
+
+        <div class="dock">
+          <button class="btn sq" title="命令输入">
+            <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7.5 9.5l2.5 2.5-2.5 2.5M12.5 15h4"/></svg>
+          </button>
+          <button class="btn mid">
+            <svg class="ic" style="width:15px;height:15px" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>
+            扩展
+          </button>
+          <button class="btn pri">一键越狱</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ B ============ -->
+  <div class="col">
+    <div class="cap">
+      <div class="name">B · 单卡融合 <em>留白最多</em></div>
+      <div class="desc">所有内容收进一张大卡：设备两行 + 管理器胶囊 → 当前环节 → 输出黑框。段落之间只用间距区分，不靠卡片分割。</div>
+    </div>
+
+    <div class="phone b">
+      <div class="sb"><span>21:54</span><span class="r"><span class="bars"><i></i><i></i><i></i><i></i></span>5G<span class="batt"></span></span></div>
+      <div class="body">
+        <div class="scroll">
+          <div class="top"><div class="h1">Snake</div><div class="live"><i></i>运行中</div></div>
+
+          <div class="big">
+            <div class="model"><b>OPPO Find X8 Ultra</b><span>00:42</span></div>
+            <div class="kv">6.6.118-android15 · CVE-2026-98260</div>
+
+            <button class="mgr"><span class="lbl">管理器</span>BakaSU v4.2.0
+              <span class="arw"><svg class="ic" width="13" height="13" viewBox="0 0 24 24"><path d="M7 9l5-5 5 5M7 15l5 5 5-5"/></svg></span>
+            </button>
+
+            <div class="cur">
+              <div class="n">校准与泄漏<em>步骤 3 / 5</em></div>
+              <div class="p"><b>42</b><s>%</s><i>ETA 00:58</i></div>
+              <div class="rail"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+            </div>
+
+            <div class="panel">
+              <div class="ph">SHELL · adb shell su</div>
+              <div class="logbox"><pre class="log"><span class="tm">[42.1]</span> probe kernel 6.6.118-android15 <span class="ok">ok</span>
+<span class="tm">[42.6]</span> kaslr slide 0x1c000000
+<span class="tm">[43.0]</span> cred offset 0x7c8 <span class="ok">ok</span>
+<span class="tm">[43.4]</span> write 1/4 fake_cred <span class="ok">ok</span>
+<span class="tm">[43.9]</span> write 2/4 selinux_enforcing <span class="ok">ok</span>
+<span class="tm">[44.2]</span> write 3/4 uid 0 -&gt; 0 <span class="ok">ok</span>
+<span class="tm">[44.6]</span> scanning cred candidates <span class="w">…</span>
+<span class="tm">[45.1]</span> write 4/4 cred-&gt;uid=0 <span class="ok">ok</span>
+<span class="tm">[45.6]</span> loading manager module <span class="w">…</span></pre></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dock">
+          <button class="btn sq"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7.5 9.5l2.5 2.5-2.5 2.5M12.5 15h4"/></svg></button>
+          <button class="btn mid"><svg class="ic" style="width:15px;height:15px" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>扩展</button>
+          <button class="btn pri">一键越狱</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ C ============ -->
+  <div class="col">
+    <div class="cap">
+      <div class="name">C · 无卡片分栏 <em>最简洁、密度最高</em></div>
+      <div class="desc">去掉卡片，只用发丝线分区。信息贴左对齐、字号更小，输出区占满剩余空间，适合想「一眼看全部」。</div>
+    </div>
+
+    <div class="phone c">
+      <div class="sb"><span>21:54</span><span class="r"><span class="bars"><i></i><i></i><i></i><i></i></span>5G<span class="batt"></span></span></div>
+      <div class="body">
+        <div class="scroll">
+          <div class="top"><div class="h1">Snake<span>_</span></div><div class="cve">CVE-2026-98260</div></div>
+
+          <div class="meta">
+            <div class="mrow"><span class="k">机型</span><b>OPPO Find X8 Ultra</b></div>
+            <div class="mrow"><span class="k">内核</span><b class="mono">6.6.118-android15</b></div>
+            <div class="mrow tap"><span class="k">管理器</span><b>BakaSU v4.2.0</b><span class="arw"><svg class="ic" width="13" height="13" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></span></div>
+          </div>
+
+          <div class="prog">
+            <div class="pline"><span class="st">校准与泄漏</span><span class="pc">42<s>%</s></span></div>
+            <div class="seg"><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i></div>
+            <div class="tick"><em>›</em>scanning cred candidates<span class="el">00:42</span></div>
+          </div>
+
+          <div class="logwrap">
+            <div class="logbox"><pre class="log"><span class="tm">42.1</span> <span class="p">$</span> probe kernel 6.6.118-android15
+<span class="tm">42.1</span>   <span class="ok">ok</span>
+<span class="tm">42.6</span> <span class="p">$</span> kaslr slide 0x1c000000
+<span class="tm">43.0</span> <span class="p">$</span> cred offset 0x7c8
+<span class="tm">43.0</span>   <span class="ok">ok</span>
+<span class="tm">43.4</span> <span class="p">$</span> write 1/4 fake_cred
+<span class="tm">43.4</span>   <span class="ok">ok</span>
+<span class="tm">43.9</span> <span class="p">$</span> write 2/4 selinux_enforcing
+<span class="tm">43.9</span>   <span class="ok">ok</span>
+<span class="tm">44.2</span> <span class="p">$</span> write 3/4 uid 0 -&gt; 0
+<span class="tm">44.2</span>   <span class="ok">ok</span>
+<span class="tm">44.6</span> <span class="p">$</span> scanning cred candidates
+<span class="tm">44.6</span>   <span class="w">…</span></pre></div>
+          </div>
+        </div>
+
+        <div class="dock">
+          <button class="btn sq"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7.5 9.5l2.5 2.5-2.5 2.5M12.5 15h4"/></svg></button>
+          <button class="btn mid"><svg class="ic" style="width:15px;height:15px" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>扩展</button>
+          <button class="btn pri">一键越狱</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="spec">
+  <div>
+    <h3>页面纵向顺序（三套一致）</h3>
+    <ul>
+      <li><b>①</b> 标题 Snake（占原 Core X 位置）</li>
+      <li><b>②</b> 设备信息：机型 / 内核 / 管理器（点击切换）</li>
+      <li><b>③</b> 进度：当前环节 + 百分比 + 滚动环节 + 耗时</li>
+      <li><b>④</b> 输出：命令原始字符，自动贴底滚动</li>
+      <li><b>⑤</b> 底部固定三按钮：命令 / 扩展 / 授权·越狱</li>
+    </ul>
+  </div>
+  <div>
+    <h3>状态与文案</h3>
+    <ul>
+      <li><b>未授权</b>：管理器「—」，输出区空提示，主按钮＝一键授权</li>
+      <li><b>已授权</b>：管理器显示实际名称，主按钮＝一键越狱</li>
+      <li><b>运行中</b>：主按钮＝中止，右上计时开始走</li>
+      <li><b>完成</b>：计时定格为「总耗时 00:42」，进度 100%</li>
+      <li><s>已删除：SELinux / tracefs / 关于 / 历史 / 日志 Tab</s></li>
+    </ul>
+  </div>
+  <div>
+    <h3>需要你定</h3>
+    <ul>
+      <li>选 A / B / C（可混搭：A 的结构 + C 的无卡片）</li>
+      <li>输出框：固定在底部 6 行，还是占满剩余空间</li>
+      <li>管理器点击：底部弹选择列表，还是直接轮换</li>
+      <li>扩展：底部弹层，还是独立页面</li>
+    </ul>
+  </div>
+</div>
+
+<div class="note">说明：静态视觉稿，未改动任何 APK 代码。设备名、版本号、日志均为占位示例；亮色令牌按现有界面取值，暗色为非纯黑（#101114）。</div>
+
+<script>
+  const lb=document.getElementById('tLight'), db=document.getElementById('tDark');
+  const setTheme=(d)=>{document.body.classList.toggle('dark',d);lb.classList.toggle('on',!d);db.classList.toggle('on',d);};
+  lb.onclick=()=>setTheme(false); db.onclick=()=>setTheme(true);
+  if(location.hash==='#dark') setTheme(true);
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Snake · 图标方案</title>
+<style>
+  :root{
+    --sans:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased}
+  html,body{margin:0}
+  body{background:#F2F3F5;color:#101114;font-family:var(--sans);padding:44px 36px 70px;transition:background .25s,color .25s}
+  body.dark{background:#0B0C0E;color:#F2F3F5}
+
+  .head{max-width:1440px;margin:0 auto 34px;display:flex;gap:24px;align-items:flex-start}
+  .head .l{flex:1}
+  .kicker{font-size:11px;letter-spacing:.22em;color:#8B9098;text-transform:uppercase;margin-bottom:10px}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0 0 9px}
+  .head p{margin:0;font-size:13px;line-height:1.75;color:#5D636B;max-width:700px}
+  body.dark .head p{color:#9BA1A9}
+  b{color:#101114}
+  body.dark b{color:#F2F3F5}
+  .toggle{display:flex;background:#DDDFE3;border-radius:12px;padding:3px;gap:2px;flex:0 0 auto;height:fit-content}
+  .toggle button{border:none;background:none;font-family:inherit;font-size:12px;font-weight:600;color:#5D636B;padding:7px 14px;border-radius:9px;cursor:pointer}
+  .toggle button.on{background:#fff;color:#101114;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  body.dark .toggle{background:#232529}
+  body.dark .toggle button{color:#9BA1A9}
+  body.dark .toggle button.on{background:#3A3E46;color:#fff}
+
+  .wrap{max-width:1440px;margin:0 auto;display:flex;flex-wrap:wrap;gap:38px 30px}
+  .item{width:268px}
+  .pair{display:flex;gap:10px}
+  .tile{width:129px;height:129px;border-radius:30px;display:grid;place-items:center;position:relative;overflow:hidden}
+  .tile.light{--ibg:#FFFFFF;--iink:#0A6BFF;background:#FFFFFF;box-shadow:inset 0 0 0 1px rgba(16,18,22,.08),0 2px 6px rgba(16,18,22,.06)}
+  .tile.dark{--ibg:#15171B;--iink:#7FB4FF;background:#15171B;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+  .tile svg{width:100%;height:100%;display:block;color:var(--iink)}
+  .minis{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .mini{width:44px;height:44px;border-radius:11px;display:grid;place-items:center;overflow:hidden}
+  .mini.light{--ibg:#FFFFFF;--iink:#0A6BFF;background:#fff;box-shadow:inset 0 0 0 1px rgba(16,18,22,.09)}
+  .mini.dark{--ibg:#15171B;--iink:#7FB4FF;background:#15171B;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09)}
+  .mini svg{width:100%;height:100%;color:var(--iink)}
+  .mini.xs{width:30px;height:30px;border-radius:8px}
+  .cap{margin-top:14px}
+  .cap .n{font-size:14px;font-weight:650}
+  .cap .n em{font-style:normal;font-weight:500;font-size:11.5px;color:#8B9098;margin-left:6px}
+  .cap .d{margin-top:4px;font-size:11.5px;line-height:1.6;color:#6E747C}
+  body.dark .cap .d{color:#878D95}
+  .tag{display:inline-block;font-size:9.5px;font-family:var(--mono);color:#0A6BFF;background:rgba(10,107,255,.09);
+    padding:2px 6px;border-radius:5px;margin-top:7px;letter-spacing:.02em}
+  body.dark .tag{color:#7FB4FF;background:rgba(127,180,255,.12)}
+
+  .sect{max-width:1440px;margin:56px auto 0;padding-top:26px;border-top:1px solid rgba(20,22,26,.1);display:flex;flex-wrap:wrap;gap:34px}
+  .sect h2{font-size:11px;letter-spacing:.18em;color:#8B9098;text-transform:uppercase;font-weight:600;margin:0 0 14px;width:100%}
+  .masks{display:flex;gap:26px;flex-wrap:wrap}
+  .mk{display:flex;flex-direction:column;gap:8px;align-items:center}
+  .mk .sh{width:104px;height:104px;background:#0A6BFF;overflow:hidden;display:grid;place-items:center;position:relative}
+  .mk .sh svg{width:100%;height:100%;color:#fff}
+  .mk .lb{font-size:10px;color:#8B9098;font-family:var(--mono)}
+  .notes{max-width:1440px;margin:44px auto 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px 40px}
+  .notes h3{font-size:11px;letter-spacing:.16em;color:#8B9098;text-transform:uppercase;margin:0 0 8px;font-weight:600}
+  .notes p,.notes li{font-size:12px;line-height:1.8;color:#5D636B;margin:0}
+  body.dark .notes p,body.dark .notes li{color:#9BA1A9}
+  .notes ul{margin:0;padding-left:15px}
+  .notes code{font-family:var(--mono);font-size:11px;background:rgba(10,107,255,.08);padding:1px 4px;border-radius:4px;color:#0A6BFF}
+  body.dark .notes code{background:rgba(127,180,255,.12);color:#7FB4FF}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-pixel" viewBox="0 0 512 512">
+    <g fill="currentColor">
+      <circle cx="330" cy="142" r="27"/>
+      <circle cx="281" cy="152" r="23"/>
+      <circle cx="234" cy="174" r="20"/>
+      <circle cx="206" cy="210" r="17.5"/>
+      <circle cx="214" cy="250" r="15"/>
+      <circle cx="252" cy="276" r="13"/>
+      <circle cx="300" cy="290" r="11.5"/>
+      <circle cx="338" cy="316" r="10"/>
+      <circle cx="348" cy="352" r="8.5"/>
+      <circle cx="320" cy="380" r="7"/>
+      <circle cx="278" cy="390" r="5.5"/>
+    </g>
+    <circle cx="340" cy="132" r="5.5" fill="var(--ibg)"/>
+  </symbol>
+
+  <symbol id="i-coil" viewBox="0 0 512 512">
+    <path d="M 252.9 244.3 C 261.1 240.3 263.8 239.9 266.4 240.1 C 269.1 240.2 272.1 240.8 274.8 242.0 C 277.5 243.1 280.4 244.9 282.7 247.1 C 285.1 249.3 287.4 252.2 289.1 255.3 C 290.8 258.5 292.1 262.2 292.7 266.1 C 293.3 269.9 293.3 274.2 292.6 278.3 C 291.9 282.5 290.4 286.9 288.2 290.8 C 286.1 294.7 283.1 298.7 279.5 302.0 C 276.0 305.2 271.6 308.2 266.9 310.3 C 262.3 312.4 256.9 314.0 251.4 314.5 C 246.0 315.0 240.1 314.8 234.5 313.5 C 228.9 312.3 223.0 310.0 217.8 306.9 C 212.6 303.8 207.4 299.7 203.2 294.8 C 199.0 290.0 195.3 284.2 192.7 278.0 C 190.1 271.8 188.2 264.7 187.7 257.7 C 187.1 250.7 187.6 243.1 189.3 236.0 C 191.0 228.9 193.9 221.5 197.9 214.9 C 201.9 208.4 207.2 202.0 213.3 196.8 C 219.3 191.7 226.6 187.1 234.3 183.9 C 241.9 180.7 250.6 178.5 259.2 177.8 C 267.8 177.2 277.1 177.8 285.8 179.8 C 294.4 181.9 303.4 185.5 311.3 190.3 C 319.2 195.1 326.8 201.5 333.1 208.7 C 339.3 216.0 344.8 224.7 348.7 233.8 C 352.5 242.9 354.8 258.5 356.0 263.4"
+          fill="none" stroke="currentColor" stroke-width="42" stroke-linecap="round"/>
+    <path d="M 356 282 L 356 306 M 356 306 L 342 324 M 356 306 L 370 324" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"/>
+    <circle cx="356" cy="246" r="7" fill="var(--ibg)"/>
+  </symbol>
+
+  <symbol id="i-s" viewBox="0 0 512 512">
+    <path d="M 328 190 C 332 134 298 102 254 102 C 204 102 170 138 176 180 C 182 222 248 234 284 264 C 320 294 324 346 290 372 C 258 396 204 388 180 354"
+          fill="none" stroke="currentColor" stroke-width="54" stroke-linecap="round"/>
+    <circle cx="330" cy="178" r="45" fill="currentColor"/>
+    <circle cx="345" cy="163" r="8" fill="var(--ibg)"/>
+  </symbol>
+
+  <symbol id="i-head" viewBox="0 0 512 512">
+    <path d="M256 108 C 304 108 342 152 344 208 C 346 270 318 336 256 400 C 194 336 166 270 168 208 C 170 152 208 108 256 108 Z" fill="currentColor"/>
+    <rect x="196" y="192" width="38" height="13" rx="6.5" fill="var(--ibg)" transform="rotate(-14 215 198)"/>
+    <rect x="278" y="192" width="38" height="13" rx="6.5" fill="var(--ibg)" transform="rotate(14 297 198)"/>
+    <path d="M256 396 L256 426 M256 426 L238 448 M256 426 L274 448" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round"/>
+  </symbol>
+
+  <symbol id="i-ring" viewBox="0 0 512 512">
+    <path d="M 150 398 C 154 300 190 228 250 194 C 280 176 320 158 350 174 C 380 190 394 224 388 256 C 382 290 352 308 318 314 C 286 320 262 328 246 346 C 232 362 228 380 228 398 Z" fill="currentColor"/>
+    <circle cx="328" cy="226" r="10" fill="var(--ibg)"/>
+    <path d="M 384 268 L 410 280 M 410 280 L 426 272 M 410 280 L 426 292" fill="none" stroke="currentColor" stroke-width="13" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<div class="head">
+  <div class="l">
+    <div class="kicker">Snake · App Icon</div>
+    <h1>四个方向，左亮右暗</h1>
+    <p>每格左边是亮色版（白底蓝蛇），右边是暗色版（深灰底浅蓝蛇）；再下面是 44 / 30px 的真实尺寸，用来判断小图标还认不认得出。选定后我出全套矢量资源。</p>
+  </div>
+  <div class="toggle"><button id="tLight" class="on">亮色</button><button id="tDark">暗色</button></div>
+</div>
+
+<div class="wrap">
+
+  <div class="item">
+    <div class="pair">
+      <div class="tile light"><svg><use href="#i-pixel"/></svg></div>
+      <div class="tile dark"><svg><use href="#i-pixel"/></svg></div>
+    </div>
+    <div class="minis">
+      <div class="mini light"><svg><use href="#i-pixel"/></svg></div>
+      <div class="mini dark"><svg><use href="#i-pixel"/></svg></div>
+      <div class="mini light xs"><svg><use href="#i-pixel"/></svg></div>
+      <div class="mini dark xs"><svg><use href="#i-pixel"/></svg></div>
+    </div>
+    <div class="cap">
+      <div class="n">A · 点阵蛇<em>由粗到细</em></div>
+      <div class="d">身体由十个圆点渐次收细，头部带眼。远看是一条蜷起来的蛇，小尺寸靠点的疏密还能撑住。</div>
+      <span class="tag">最轻</span>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="pair">
+      <div class="tile light"><svg><use href="#i-coil"/></svg></div>
+      <div class="tile dark"><svg><use href="#i-coil"/></svg></div>
+    </div>
+    <div class="minis">
+      <div class="mini light"><svg><use href="#i-coil"/></svg></div>
+      <div class="mini dark"><svg><use href="#i-coil"/></svg></div>
+      <div class="mini light xs"><svg><use href="#i-coil"/></svg></div>
+      <div class="mini dark xs"><svg><use href="#i-coil"/></svg></div>
+    </div>
+    <div class="cap">
+      <div class="n">B · 盘蛇<em>单线</em></div>
+      <div class="d">一条线盘起来，末端探出头。最克制，和现在的极简界面气质最合，但小尺寸下有点抽象。</div>
+      <span class="tag">最克制</span>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="pair">
+      <div class="tile light"><svg><use href="#i-s"/></svg></div>
+      <div class="tile dark"><svg><use href="#i-s"/></svg></div>
+    </div>
+    <div class="minis">
+      <div class="mini light"><svg><use href="#i-s"/></svg></div>
+      <div class="mini dark"><svg><use href="#i-s"/></svg></div>
+      <div class="mini light xs"><svg><use href="#i-s"/></svg></div>
+      <div class="mini dark xs"><svg><use href="#i-s"/></svg></div>
+    </div>
+    <div class="cap">
+      <div class="n">C · S 蛇<em>推荐</em></div>
+      <div class="d">蛇身直接弯成 S，头顶在上方。既是 Snake 的首字母，也有蛇的形态，做品牌标最稳。</div>
+      <span class="tag">最好延展</span>
+    </div>
+  </div>
+
+  <div class="item">
+    <div class="pair">
+      <div class="tile light"><svg><use href="#i-head"/></svg></div>
+      <div class="tile dark"><svg><use href="#i-head"/></svg></div>
+    </div>
+    <div class="minis">
+      <div class="mini light"><svg><use href="#i-head"/></svg></div>
+      <div class="mini dark"><svg><use href="#i-head"/></svg></div>
+      <div class="mini light xs"><svg><use href="#i-head"/></svg></div>
+      <div class="mini dark xs"><svg><use href="#i-head"/></svg></div>
+    </div>
+    <div class="cap">
+      <div class="n">D · 蛇头<em>正面对称</em></div>
+      <div class="d">正面蛇头 + 分叉舌，图形最饱满、最「有攻击性」，适合 root 工具。但容易被看成叶子。</div>
+      <span class="tag">最抢眼</span>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="sect">
+  <h2>自适应图标裁切测试（以 C 为例，四种桌面遮罩）</h2>
+  <div class="masks">
+    <div class="mk"><div class="sh" style="border-radius:50%"><svg><use href="#i-s"/></svg></div><span class="lb">circle</span></div>
+    <div class="mk"><div class="sh" style="border-radius:32%"><svg><use href="#i-s"/></svg></div><span class="lb">squircle</span></div>
+    <div class="mk"><div class="sh" style="border-radius:22%"><svg><use href="#i-s"/></svg></div><span class="lb">rounded</span></div>
+    <div class="mk"><div class="sh" style="border-radius:0"><svg><use href="#i-s"/></svg></div><span class="lb">square</span></div>
+  </div>
+</div>
+
+<div class="notes">
+  <div>
+    <h3>怎么做到跟着主题变</h3>
+    <p>用自适应图标（Android 8+ 的 <code>mipmap-anydpi-v26</code>），前景 / 背景都拆成资源，再各放一份 <code>-night</code> 限定版：亮色走白底蓝蛇，暗色走深灰底浅蓝蛇。系统切主题时，桌面会重新读取图标资源。</p>
+  </div>
+  <div>
+    <h3>还有一个前提</h3>
+    <p>ColorOS 桌面切换深浅色后一般会立即刷新图标；个别版本要等桌面重载。要 100% 立刻生效，可以在切主题时触发一次图标别名刷新，但会有短暂闪烁，我不建议默认开。</p>
+  </div>
+  <div>
+    <h3>顺带会做的</h3>
+    <p>同时补 <code>monochrome</code> 单色层，这样 ColorOS / Android 13+ 的「主题图标」也能用；再出 512 商店图、通知栏小图标，以及启动页用的同款矢量。</p>
+  </div>
+</div>
+
+<script>
+  const lb=document.getElementById('tLight'), db=document.getElementById('tDark');
+  const setTheme=(d)=>{document.body.classList.toggle('dark',d);lb.classList.toggle('on',!d);db.classList.toggle('on',d);};
+  lb.onclick=()=>setTheme(false); db.onclick=()=>setTheme(true);
+  if(location.hash==='#dark') setTheme(true);
+</script>
+</body>
+</html>
