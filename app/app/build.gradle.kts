@@ -9,7 +9,6 @@ val keystoreProps = Properties().apply {
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.mikepenz.aboutlibraries.plugin")
 }
 
 android {
@@ -24,7 +23,7 @@ android {
         applicationId = "com.android.snake"
         minSdk = 33
         targetSdk = 37
-        versionCode = 100
+        versionCode = 101
         versionName = "2.2.1"
         ndk {
             abiFilters.add("arm64-v8a")
@@ -75,12 +74,6 @@ android {
 }
 
 
-aboutLibraries {
-    library {
-        duplicationMode = com.mikepenz.aboutlibraries.plugin.DuplicateMode.MERGE
-        duplicationRule = com.mikepenz.aboutlibraries.plugin.DuplicateRule.SIMPLE
-    }
-}
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.09.00"))
@@ -91,7 +84,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("io.github.itoseo:coui:0.0.1-alpha7")
-    implementation("com.mikepenz:aboutlibraries-core:15.2.0")
     implementation("dev.rikka.shizuku:api:13.1.5")
     implementation("dev.rikka.shizuku:aidl:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")

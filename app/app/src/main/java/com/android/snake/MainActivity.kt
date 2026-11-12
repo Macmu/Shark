@@ -80,7 +80,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -106,8 +105,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-
-private const val PROJECT_URL = "https://github.com/Yunnijian/Shark"
 
 private val STAGES = listOf(
     "检查设备与授权",
@@ -180,8 +177,6 @@ class MainActivity : ComponentActivity() {
     private var cmdRunning by mutableStateOf(false)
 
     /* ===== 对话框 ===== */
-    private var pendingUpdate by mutableStateOf<UpdateInfo?>(null)
-    private var updateCheckedThisForeground = false
     private var showDroid by mutableStateOf(false)
     private var droidLoading by mutableStateOf(false)
     private var droidRelease by mutableStateOf<DroidspacesRelease?>(null)
@@ -277,14 +272,6 @@ class MainActivity : ComponentActivity() {
         if (binderReady && authorized) {
             runCatching { AdbAuth.dismissPairingNotification(applicationContext) }
         }
-        // 本分支已改名换包（com.android.snake），与上游 Shark 的版本号体系不再对应，
-        // 自动检查会一直误报「有新版本」，因此关闭；需要看上游动态请走关于页的项目主页。
-        updateCheckedThisForeground = true
-    }
-
-    override fun onStop() {
-        updateCheckedThisForeground = false
-        super.onStop()
     }
 
     override fun onDestroy() {
@@ -344,9 +331,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        pendingUpdate?.let { info ->
-            UpdateDialog(palette, info) { pendingUpdate = null }
-        }
         if (managerPickerOpen) ManagerPickerDialog(palette) { managerPickerOpen = false }
         if (showDroid) DroidspacesDialog(palette)
     }
@@ -1006,7 +990,6 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun AboutPage(palette: Palette) {
-        val uri = LocalUriHandler.current
         Column(
             Modifier
                 .fillMaxSize()
@@ -1075,8 +1058,6 @@ class MainActivity : ComponentActivity() {
             )
             Spacer(Modifier.height(22.dp))
             LinkRow("使用手册", palette) { page = Page.MANUAL }
-            LinkRow("开源许可", palette) { uri.openUri("$PROJECT_URL/blob/main/NOTICE") }
-            LinkRow("项目主页", palette) { uri.openUri(PROJECT_URL) }
             Spacer(Modifier.height(24.dp))
             Txt("GPL-3.0 · 仅供学习研究", 11, palette.dim)
             Spacer(Modifier.height(24.dp))
@@ -1202,35 +1183,6 @@ class MainActivity : ComponentActivity() {
                     }
                     Spacer(Modifier.height(12.dp))
                     content()
-                }
-            }
-        }
-    }
-
-    @Composable
-    private fun UpdateDialog(palette: Palette, info: UpdateInfo, onDismiss: () -> Unit) {
-        val uri = LocalUriHandler.current
-        SnakeDialog(palette, "发现新版本 ${info.version}", onDismiss) {
-            Txt(
-                info.changelog
-                    .lineSequence()
-                    .joinToString("\n") { line ->
-                        line.trimStart().trimStart('#').trim()
-                            .replace("`", "")
-                            .replace("**", "")
-                    }
-                    .trim()
-                    .ifBlank { "本次更新包含修复与优化。" },
-                12,
-                palette.dim,
-                modifier = Modifier.heightIn(max = 200.dp).verticalScroll(rememberScrollState())
-            )
-            Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                DialogButton("稍后", false, palette, Modifier.weight(1f)) { onDismiss() }
-                DialogButton("前往下载", true, palette, Modifier.weight(1f)) {
-                    uri.openUri(info.pageUrl)
-                    onDismiss()
                 }
             }
         }
@@ -1384,7 +1336,6 @@ class MainActivity : ComponentActivity() {
 
     private fun addLog(line: String) {
         Log.i("SNAKE", line)
-        HistoryStore.append(line)
         val stamped = "${timeFmt.format(Date())}  $line"
         runOnUiThread {
             logs.add(stamped)
@@ -1626,7 +1577,6 @@ class MainActivity : ComponentActivity() {
         stageIndex = 0
         val softReboot = softRebootAfter
         val started = System.currentTimeMillis()
-        HistoryStore.start(applicationContext, manager.fullLabel, exploit.fullLabel, kernelVersion, deviceModel)
         startTicker()
         lifecycleScope.launch(Dispatchers.IO) {
             var success = false
@@ -1692,7 +1642,6 @@ class MainActivity : ComponentActivity() {
             } catch (t: Throwable) {
                 addLog("ERROR: $t")
             } finally {
-                HistoryStore.finish(success, exit, System.currentTimeMillis() - started)
                 withContext(Dispatchers.Main) {
                     busy = false
                     stopTicker(success, started)
