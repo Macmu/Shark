@@ -404,7 +404,8 @@ class MainActivity : ComponentActivity() {
                     if (exploit == ExploitKind.UNSUPPORTED) "当前内核不受支持 · $kernelVersion"
                     else exploit.fullLabel,
                     11.5f,
-                    palette.dim
+                    palette.dim,
+                    maxLines = 1
                 )
             }
             Box(
@@ -956,7 +957,7 @@ class MainActivity : ComponentActivity() {
                     Image(
                         painter = painterResource(R.drawable.ic_launcher_foreground),
                         contentDescription = null,
-                        modifier = Modifier.size(56.dp)
+                        modifier = Modifier.size(66.dp)
                     )
                 }
                 Spacer(Modifier.width(14.dp))
