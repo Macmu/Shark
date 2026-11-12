@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
@@ -35,6 +37,7 @@ import java.util.Date
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -63,7 +66,18 @@ object AdbAuth {
     @Volatile
     private var connected = false
 
+    @Volatile
+    private var lastErrorMessage: String? = null
+
+    private val connecting = AtomicBoolean(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     fun isReady(): Boolean = connected && (manager?.isConnected == true)
+
+    fun lastError(): String? = lastErrorMessage
+
+    /** 所有 ADB 发现/连接都是阻塞式的，绝不能在主线程执行，否则会 ANR。 */
+    private fun onMainThread(): Boolean = Looper.myLooper() == Looper.getMainLooper()
 
     fun requiredPermissions(): Array<String> = buildList {
         add(Manifest.permission.POST_NOTIFICATIONS)
@@ -76,20 +90,27 @@ object AdbAuth {
         if (Build.VERSION.SDK_INT >= 37) add("android.permission.ACCESS_LOCAL_NETWORK")
     }.toTypedArray()
 
-    private fun hasPermissions(context: Context): Boolean = requiredPermissions().all {
+    fun hasPermissions(context: Context): Boolean = requiredPermissions().all {
         ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
     }
 
-    /** 主按钮在「未连接」状态下的入口：先尝试复用已配对的连接，否则引导配对。 */
-    fun startPairingFlow(context: Context): StartState {
-        if (!hasPermissions(context)) return StartState.NEED_PERMISSIONS
+    /**
+     * 必须由后台线程调用：内部是阻塞式 mDNS/TLS 等待（libadb-android 的
+     * autoConnect 使用 CountDownLatch.await）。返回 Result，任何异常都交给
+     * UI 层展示，避免从 Compose 点击事件里抛出未捕获异常导致闪退。
+     */
+    fun startPairingFlow(context: Context): Result<StartState> = runCatching {
+        if (onMainThread()) error("内置授权连接不能在 UI 线程执行")
+        if (!hasPermissions(context)) return@runCatching StartState.NEED_PERMISSIONS
         if (connect(context)) {
-            notifyResult(context, "内置授权已连接（无线调试）")
-            return StartState.CONNECTED
+            mainHandler.post { runCatching { notifyResult(context, "内置授权已连接（无线调试）") } }
+            return@runCatching StartState.CONNECTED
         }
-        showPairingNotification(context)
-        openDeveloperSettings(context)
-        return StartState.PAIRING
+        mainHandler.post {
+            runCatching { showPairingNotification(context) }
+            runCatching { openDeveloperSettings(context) }
+        }
+        StartState.PAIRING
     }
 
     /** 配对码由通知栏远程输入提交后调用。 */
@@ -119,17 +140,27 @@ object AdbAuth {
         "内置授权已连接（无线调试）"
     }
 
-    @Synchronized
-    fun connect(context: Context): Boolean {
-        if (!hasPermissions(context)) return false
-        val m = ensureManager(context)
-        if (m.isConnected) {
-            connected = true
-            return true
+    /**
+     * 后台线程调用。connecting 防止 onCreate 的静默重连与按钮点击并发争用；
+     * 不再用 @Synchronized，避免第二个调用方在 UI 线程等待持有锁的后台任务。
+     */
+    fun connect(context: Context, timeoutMs: Long = 4_000L): Boolean {
+        if (onMainThread() || !hasPermissions(context)) return false
+        if (!connecting.compareAndSet(false, true)) return isReady()
+        return try {
+            val m = ensureManager(context)
+            val ok = if (m.isConnected) true
+            else m.connectTls(context.applicationContext, timeoutMs)
+            connected = ok && m.isConnected
+            if (!connected) lastErrorMessage = "无线调试尚未连接或配对已失效"
+            connected
+        } catch (t: Throwable) {
+            lastErrorMessage = t.message ?: t.javaClass.simpleName
+            connected = false
+            false
+        } finally {
+            connecting.set(false)
         }
-        val ok = runCatching { m.connectTls(context.applicationContext, 12_000L) }.getOrDefault(false)
-        connected = ok && m.isConnected
-        return connected
     }
 
     @Synchronized

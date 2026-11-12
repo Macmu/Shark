@@ -25,10 +25,12 @@ class AdbPairingReceiver : BroadcastReceiver() {
         Thread {
             try {
                 val result = AdbAuth.pairAndConnect(appContext, code)
-                AdbAuth.notifyResult(
-                    appContext,
-                    result.getOrElse { "内置授权失败：${it.message ?: it.javaClass.simpleName}" }
-                )
+                runCatching {
+                    AdbAuth.notifyResult(
+                        appContext,
+                        result.getOrElse { "内置授权失败：${it.message ?: it.javaClass.simpleName}" }
+                    )
+                }
             } finally {
                 pending.finish()
             }

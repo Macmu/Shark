@@ -2198,19 +2198,46 @@ class MainActivity : ComponentActivity() {
         authorized = PrivService.granted()
     }
 
-    /** 主按钮在「未连接」时启动内置授权流程；不改动现有界面结构。 */
+    /**
+     * 主按钮在「未连接」时启动内置授权流程。
+     * mDNS 发现与 TLS 连接会阻塞数秒，必须放到 IO 线程，否则 UI 线程
+     * 被 CountDownLatch.await 卡住触发 ANR / 闪退。
+     */
     private fun startBuiltinAuth() {
-        when (AdbAuth.startPairingFlow(applicationContext)) {
-            AdbAuth.StartState.CONNECTED -> {
-                refreshAuth()
-                addLog("内置授权已连接（无线调试）")
-            }
-            AdbAuth.StartState.PAIRING -> addLog(
-                "请打开「无线调试 → 使用配对码配对设备」，保持弹窗开启，然后在通知栏输入六位配对码；完成后回到本页"
-            )
-            AdbAuth.StartState.NEED_PERMISSIONS -> {
-                addLog("申请本地网络与通知权限…")
-                requestPermissions(AdbAuth.requiredPermissions(), REQ_ADB_PERM)
+        if (!AdbAuth.hasPermissions(applicationContext)) {
+            addLog("申请本地网络与通知权限…")
+            requestPermissions(AdbAuth.requiredPermissions(), REQ_ADB_PERM)
+            return
+        }
+        busy = true
+        addLog("正在连接内置授权（无线调试）…")
+        lifecycleScope.launch(Dispatchers.IO) {
+            val outcome = AdbAuth.startPairingFlow(applicationContext)
+            withContext(Dispatchers.Main) {
+                busy = false
+                outcome.fold(
+                    onSuccess = { state ->
+                        when (state) {
+                            AdbAuth.StartState.CONNECTED -> {
+                                refreshAuth()
+                                addLog("内置授权已连接（无线调试）")
+                            }
+                            AdbAuth.StartState.PAIRING -> {
+                                AdbAuth.lastError()?.let { addLog("连接未就绪：$it") }
+                                addLog(
+                                    "请打开「无线调试 → 使用配对码配对设备」，保持弹窗开启，然后在通知栏输入六位配对码；完成后回到本页"
+                                )
+                            }
+                            AdbAuth.StartState.NEED_PERMISSIONS -> {
+                                addLog("申请本地网络与通知权限…")
+                                requestPermissions(AdbAuth.requiredPermissions(), REQ_ADB_PERM)
+                            }
+                        }
+                    },
+                    onFailure = { t ->
+                        addLog("内置授权失败：${t.message ?: t.javaClass.simpleName}")
+                    }
+                )
             }
         }
     }
