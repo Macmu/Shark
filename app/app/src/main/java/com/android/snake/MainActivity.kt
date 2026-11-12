@@ -1378,15 +1378,15 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(15.dp))
-                        .background(if (palette.dark) Color(0xFF24331E) else Color.White),
+                        .background(if (palette.dark) Color.Black else Color.White),
                     contentAlignment = Alignment.Center
                 ) {
-                    // 前景图是 108dp 画布，图形只占中间约 66%，所以这里放大到 60dp，
-                    // 尾巴才不会贴边被裁。
+                    // 前景是 108dp 画布，图形只占中间约 54%，按 88dp 画正好留出四周留白，
+                    // 头和尾巴都不会贴边被裁。
                     Image(
                         painter = painterResource(R.drawable.ic_launcher_foreground),
                         contentDescription = null,
-                        modifier = Modifier.size(60.dp)
+                        modifier = Modifier.size(88.dp)
                     )
                 }
                 Spacer(Modifier.width(14.dp))

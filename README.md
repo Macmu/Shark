@@ -1,4 +1,4 @@
-<h1 align="center"><img src="docs/images/snake-icon-v1.png" width="56" height="56" align="absmiddle" alt="Snake"> Snake</h1>
+<h1 align="center"><img src="docs/images/snake-icon-v2.png" width="56" height="56" align="absmiddle" alt="Snake"> Snake</h1>
 
 <p align="center"><b>多机型 Android 一键临时 Root · 内置授权，免装 Shizuku</b></p>
 

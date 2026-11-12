@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Snake 图标前景（深色模式）：底色改墨绿 #24331E，蛇身提亮到 #8CDC63，
-  整体保持绿调与高饱和，避免近黑底导致的灰暗感。
--->
+<!-- Snake 图标前景（暗色）：黑底白蛇，描边与底色同为黑，靠切缝分出头部。 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -14,75 +11,66 @@
         android:scaleY="0.9"
         android:pivotX="256"
         android:pivotY="256"
+        android:translateX="-6"
         android:translateY="-24">
 
-        <path
-            android:fillColor="#8CDC63"
-            android:strokeColor="#16301B"
-            android:strokeWidth="11"
-            android:strokeLineJoin="round"
-            android:pathData="M366,350 C404,346 436,338 452,326 C446,344 434,358 418,368 C400,380 386,390 366,396 Z" />
-
-        <path
-            android:fillColor="#8CDC63"
-            android:strokeColor="#16301B"
-            android:strokeWidth="12"
-            android:pathData="M124,378 a128,58 0 1,0 256,0 a128,58 0 1,0 -256,0 Z" />
-
-        <path
-            android:fillColor="#FFE3BB"
-            android:pathData="M206,388 a46,50 0 1,0 92,0 a46,50 0 1,0 -92,0 Z" />
-
-        <path
-            android:fillColor="#8CDC63"
-            android:strokeColor="#16301B"
-            android:strokeWidth="12"
-            android:pathData="M146,228 a106,98 0 1,0 212,0 a106,98 0 1,0 -212,0 Z" />
-
-        <path
-            android:fillColor="#12203A"
-            android:pathData="M179,214 a29,32 0 1,0 58,0 a29,32 0 1,0 -58,0 Z" />
-        <path
-            android:fillColor="#12203A"
-            android:pathData="M269,214 a29,32 0 1,0 58,0 a29,32 0 1,0 -58,0 Z" />
-
+        <!-- 尾巴（压在身体后面） -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M186,201 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 Z" />
+            android:strokeColor="#000000" android:strokeWidth="11" android:strokeLineJoin="round"
+            android:pathData="M368,346 C404,342 430,322 446,294 C450,322 440,352 418,372 C400,389 382,398 362,402 Z" />
+
+        <!-- 盘起的身体 -->
         <path
             android:fillColor="#FFFFFF"
-            android:pathData="M276,201 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0 Z" />
-        <path
-            android:fillColor="#E6FFFFFF"
-            android:pathData="M210.5,228 a5.5,5.5 0 1,0 11,0 a5.5,5.5 0 1,0 -11,0 Z" />
-        <path
-            android:fillColor="#E6FFFFFF"
-            android:pathData="M300.5,228 a5.5,5.5 0 1,0 11,0 a5.5,5.5 0 1,0 -11,0 Z" />
+            android:strokeColor="#000000" android:strokeWidth="13"
+            android:pathData="M122,376 a130,60 0 1,0 260,0 a130,60 0 1,0 -260,0 Z" />
 
+        <!-- 盘身卷曲的分界：一道细线，不做成腹部色块 -->
         <path
-            android:fillColor="#16301B"
-            android:pathData="M235,262 a5,4 0 1,0 10,0 a5,4 0 1,0 -10,0 Z" />
-        <path
-            android:fillColor="#16301B"
-            android:pathData="M259,262 a5,4 0 1,0 10,0 a5,4 0 1,0 -10,0 Z" />
+            android:pathData="M152,398 Q252,434 352,398"
+            android:strokeColor="#000000"
+            android:strokeWidth="7"
+            android:strokeLineCap="round"
+            android:strokeAlpha="0.55" />
 
+        <!-- 头（亮色版不描边，靠一圈与底色同色的缝和盘身分开） -->
         <path
-            android:pathData="M216,278 Q252,310 288,278"
-            android:strokeColor="#16301B"
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#000000" android:strokeWidth="13"
+            android:pathData="M148,226 a104,97 0 1,0 208,0 a104,97 0 1,0 -208,0 Z" />
+
+        <!-- 眼睛 -->
+        <path android:fillColor="#0B1220" android:pathData="M180,212 a28,31 0 1,0 56,0 a28,31 0 1,0 -56,0 Z" />
+        <path android:fillColor="#0B1220" android:pathData="M268,212 a28,31 0 1,0 56,0 a28,31 0 1,0 -56,0 Z" />
+
+        <!-- 高光 -->
+        <path android:fillColor="#FFFFFF" android:pathData="M186.5,199 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0 Z" />
+        <path android:fillColor="#FFFFFF" android:pathData="M274.5,199 a10.5,10.5 0 1,0 21,0 a10.5,10.5 0 1,0 -21,0 Z" />
+        <path android:fillColor="#E6FFFFFF" android:pathData="M211.8,226 a5.2,5.2 0 1,0 10.4,0 a5.2,5.2 0 1,0 -10.4,0 Z" />
+        <path android:fillColor="#E6FFFFFF" android:pathData="M299.8,226 a5.2,5.2 0 1,0 10.4,0 a5.2,5.2 0 1,0 -10.4,0 Z" />
+
+        <!-- 鼻孔与嘴 -->
+        <path android:fillColor="#000000" android:pathData="M235,260 a5,4 0 1,0 10,0 a5,4 0 1,0 -10,0 Z" />
+        <path android:fillColor="#000000" android:pathData="M259,260 a5,4 0 1,0 10,0 a5,4 0 1,0 -10,0 Z" />
+        <path
+            android:pathData="M216,276 Q252,308 288,276"
+            android:strokeColor="#000000"
             android:strokeWidth="9"
             android:strokeLineCap="round" />
 
+        <!-- 小尖牙 -->
         <path
             android:fillColor="#FFFFFF"
-            android:strokeColor="#16301B"
-            android:strokeWidth="3.5"
+            android:strokeColor="#000000"
+            android:strokeWidth="3.4"
             android:strokeLineJoin="round"
-            android:pathData="M226,287 L232,310 L239,289 Z" />
+            android:pathData="M226,285 L232,308 L239,287 Z" />
         <path
             android:fillColor="#FFFFFF"
-            android:strokeColor="#16301B"
-            android:strokeWidth="3.5"
+            android:strokeColor="#000000"
+            android:strokeWidth="3.4"
             android:strokeLineJoin="round"
-            android:pathData="M265,289 L272,310 L278,287 Z" />
+            android:pathData="M265,287 L272,308 L278,285 Z" />
     </group>
 </vector>
