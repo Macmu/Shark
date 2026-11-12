@@ -277,15 +277,9 @@ class MainActivity : ComponentActivity() {
         if (binderReady && authorized) {
             runCatching { AdbAuth.dismissPairingNotification(applicationContext) }
         }
-        if (updateCheckedThisForeground) return
+        // 本分支已改名换包（com.android.snake），与上游 Shark 的版本号体系不再对应，
+        // 自动检查会一直误报「有新版本」，因此关闭；需要看上游动态请走关于页的项目主页。
         updateCheckedThisForeground = true
-        if (pendingUpdate != null) return
-        lifecycleScope.launch {
-            val result = runCatching { UpdateChecker.check(applicationContext) }.getOrNull()
-            if (result is UpdateCheckResult.Available && pendingUpdate == null) {
-                pendingUpdate = result.info
-            }
-        }
     }
 
     override fun onStop() {
@@ -741,20 +735,9 @@ class MainActivity : ComponentActivity() {
                     .height(48.dp)
                     .clip(RoundedCornerShape(13.dp))
                     .background(palette.surface)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) {
-                        // 整行（含 # 号与右侧留白）都能聚焦并唤起键盘，
-                        // 否则只有文字那一行的热区，点偏一点就没反应。
-                        runCatching { focusRequester.requestFocus() }
-                        keyboard?.show()
-                    }
                     .padding(start = 14.dp, end = 5.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Txt("#", 15, palette.accent, FontWeight.Bold, mono = true)
-                Spacer(Modifier.width(9.dp))
                 BasicTextField(
                     value = cmdInput,
                     onValueChange = { cmdInput = it },
@@ -784,11 +767,23 @@ class MainActivity : ComponentActivity() {
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions(onSend = { runCommand() }),
                     decorationBox = { inner ->
-                        Box(contentAlignment = Alignment.CenterStart) {
-                            if (cmdInput.isEmpty()) {
-                                Txt("输入命令", 13, palette.dim.copy(alpha = 0.7f), mono = true)
+                        // # 号放进装饰层：整块输入区（含 # 号）都归 TextField 管，
+                        // 点在哪里都能聚焦并自动弹出键盘。
+                        Row(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Txt("#", 15, palette.accent, FontWeight.Bold, mono = true)
+                            Spacer(Modifier.width(9.dp))
+                            Box(
+                                modifier = Modifier.weight(1f),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                if (cmdInput.isEmpty()) {
+                                    Txt("输入命令", 13, palette.dim.copy(alpha = 0.7f), mono = true)
+                                }
+                                inner()
                             }
-                            inner()
                         }
                     }
                 )
@@ -892,10 +887,14 @@ class MainActivity : ComponentActivity() {
                 .padding(horizontal = 20.dp)
                 .navigationBarsPadding()
         ) {
-            if (!isVivoV2505a() && exploit != ExploitKind.UNSUPPORTED) {
-                SwitchRow("越狱后禁用安全弹窗", antiRootGuard, palette) { updateAntiRootGuard(it) }
+            if (exploit != ExploitKind.UNSUPPORTED) {
+                if (!isVivoV2505a()) {
+                    SwitchRow("越狱后禁用安全弹窗", antiRootGuard, palette) { updateAntiRootGuard(it) }
+                }
                 SwitchRow("越狱后软重启", softRebootAfter, palette) { updateSoftRebootAfter(it) }
-                SwitchRow("越狱后卸载内核安全防护", unloadGuard, palette) { updateUnloadGuard(it) }
+                if (!isVivoV2505a()) {
+                    SwitchRow("越狱后卸载内核安全防护", unloadGuard, palette) { updateUnloadGuard(it) }
+                }
             }
             if (supportsSusfs()) {
                 SwitchRow("SUSFS 支持", susfsSupport, palette) { updateSusfsSupport(it) }
@@ -1213,7 +1212,15 @@ class MainActivity : ComponentActivity() {
         val uri = LocalUriHandler.current
         SnakeDialog(palette, "发现新版本 ${info.version}", onDismiss) {
             Txt(
-                info.changelog.ifBlank { "本次更新包含修复与优化。" },
+                info.changelog
+                    .lineSequence()
+                    .joinToString("\n") { line ->
+                        line.trimStart().trimStart('#').trim()
+                            .replace("`", "")
+                            .replace("**", "")
+                    }
+                    .trim()
+                    .ifBlank { "本次更新包含修复与优化。" },
                 12,
                 palette.dim,
                 modifier = Modifier.heightIn(max = 200.dp).verticalScroll(rememberScrollState())
@@ -1442,7 +1449,7 @@ class MainActivity : ComponentActivity() {
         val p = PrivService.newProcess(
             arrayOf(
                 "sh", "-c",
-                "if grep -qi kernelsu /proc/modules; then echo YES; elif timeout 3 su -c id 2>/dev/null | grep -q uid=0; then echo YES; else echo NO; fi; getenforce"
+                "if grep -q '^kernelsu .* Live ' /proc/modules; then echo YES; elif timeout 3 su -c id 2>/dev/null | grep -q uid=0; then echo YES; else echo NO; fi; getenforce"
             ),
             shizukuEnv(), "/"
         )
@@ -1654,6 +1661,7 @@ class MainActivity : ComponentActivity() {
                     ExploitKind.CVE61258 -> arrayOf("$nativeDir/libk61258.so", "run")
                     ExploitKind.CVE61223 -> arrayOf("$nativeDir/libk61223.so", "run")
                     ExploitKind.CVE66118 -> arrayOf("$nativeDir/libk66118.so", "run")
+                    ExploitKind.CVE66127 -> arrayOf("$nativeDir/libk66127.so", "run")
                     ExploitKind.UNSUPPORTED -> null
                 } ?: return@launch
                 val (rc, transcript) = runStreaming(cmd, nativeDir)
@@ -1671,7 +1679,7 @@ class MainActivity : ComponentActivity() {
                 }
                 addLog(if (loaded) "KernelSU module loaded" else "KernelSU module not loaded")
                 if (loaded) advanceStage(4)
-                if (loaded && !softReboot) withContext(Dispatchers.Main) { launchManager() }
+                if (rc == 0 && loaded && !softReboot) withContext(Dispatchers.Main) { launchManager() }
                 if (softReboot && rc == 0 && loaded) {
                     addLog("越狱完成，正在重启 zygote")
                     runCatching {
@@ -1705,6 +1713,7 @@ class MainActivity : ComponentActivity() {
         val env = shizukuEnv() + "PYB110_DIR=$dir" + "PYB110_MANAGER=${initialManager.manager}" +
             "PYB110_LATE_LOAD=1" +
             "PYB110_UNLOAD_GUARD=${if (unloadGuard) "1" else "0"}" +
+            "PYB110_GATE=${if (isGateKernel()) "1" else "0"}" +
             "PYB110_DISABLE_ANTIROOT=${if (antiRootGuard) "1" else "0"}" +
             "PYB110_SUSFS=${if (susfsActive) "1" else "0"}" +
             "PYB110_VFS=${if (vfsSupport) "1" else "0"}" +
@@ -1869,8 +1878,17 @@ class MainActivity : ComponentActivity() {
             exploit == ExploitKind.CVE61258 ||
             exploit == ExploitKind.CVE61223
 
+    /** OriginOS 7 的内核通过 hooks_defend 门加载 KSU LKM，不能按常规路径处理。 */
+    private fun isGateKernel(): Boolean =
+        exploit == ExploitKind.CVE66127 ||
+            (exploit == ExploitKind.CVE61258 &&
+                (kernelVersion.contains("gdd6fd5c98918") ||
+                    kernelVersion.contains("g690108013dcc")))
+
     private fun supportsSusfs(): Boolean =
-        exploit != ExploitKind.CVE66118 && exploit != ExploitKind.UNSUPPORTED
+        !isGateKernel() && exploit != ExploitKind.CVE66118 &&
+            exploit != ExploitKind.CVE66127 &&
+            exploit != ExploitKind.UNSUPPORTED
 
     private fun managerChoices(): List<ManagerKind> =
         if (supportsUniversal()) ManagerKind.entries
@@ -1886,6 +1904,7 @@ class MainActivity : ComponentActivity() {
         CVE61258("CVE-2026-98260-6.12.58"),
         CVE61223("CVE-2026-98260-vivo-6.12.23"),
         CVE66118("CVE-2026-98260-6.6.118"),
+        CVE66127("CVE-2026-98260-vivo-6.6.127"),
         UNSUPPORTED("当前机型不支持")
     }
 
@@ -1913,6 +1932,8 @@ class MainActivity : ComponentActivity() {
             "6.12.23-android16-5-g41f4cb1fa7c7-abogki465038634-4k" to ExploitKind.CVE61223,
             "6.6.118-android15-8-g9bc34d5b0c79-abogki537459655-4k" to ExploitKind.CVE66118,
             "6.6.118-android15-8-gc4127a25dcf3-ab15863337-4k" to ExploitKind.CVE66118,
+            "6.6.127-android15-8-gd489d4ad2a70-abogki567717946-4k" to ExploitKind.CVE66127,
+            "6.12.58-android16-6-g690108013dcc-abogki576129896-4k" to ExploitKind.CVE61258,
         )
     }
 }

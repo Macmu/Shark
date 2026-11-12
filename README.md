@@ -24,6 +24,24 @@ SukiSU Ultra 或 FinaSU 的 root 环境。
 > - 图标重绘为蛇头，自适应图标 + 单色层，并提供 `values-night` 一套深色版本；系统切到深色模式后桌面图标会换成深色版（个别 ColorOS 版本需等桌面重载）。
 > - 下文的界面截图与截图里的文案来自改版前的 Shark，功能一致、布局已变，新截图待补。
 
+## 跟进上游更新
+
+本分支只吸收上游的**机型支持**与**后台逻辑**，界面代码独立维护，因此不需要逐版本追。
+
+上游发版后执行一条命令：
+
+```bash
+./tools/sync-upstream.sh v2.2.1    # 或 upstream/main
+```
+
+它会做三件事：
+1. 拉取指定 ref；
+2. 覆盖 `jniLibs/arm64-v8a`（exploit 与 LKM 二进制）并同步 `exploit/` 源码；
+3. 把新机型的 `ExploitKind`、`PROFILE_BY_RELEASE` 映射和 `.so` 启动分支合并进 `MainActivity.kt`。
+
+上游其余的 App 层改动会以 diff 形式列出来，由人判断是否移植。
+`tools/merge_device_profiles.py` 可单独重复执行，已存在的条目不会重复写入。
+
 ## 界面
 
 <table align="center">
