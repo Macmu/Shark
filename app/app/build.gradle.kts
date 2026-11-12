@@ -23,8 +23,8 @@ android {
         applicationId = "com.android.snake"
         minSdk = 33
         targetSdk = 37
-        versionCode = 102
-        versionName = "1.0"
+        versionCode = 103
+        versionName = "1.1"
         ndk {
             abiFilters.add("arm64-v8a")
         }

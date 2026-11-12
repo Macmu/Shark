@@ -10,18 +10,28 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,6 +64,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Extension
@@ -74,6 +89,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -177,6 +193,15 @@ class MainActivity : ComponentActivity() {
     private var cmdInput by mutableStateOf("")
     private var cmdRunning by mutableStateOf(false)
 
+    /* ===== 常用命令 ===== */
+    private var savedCmds by mutableStateOf<List<SavedCmd>>(emptyList())
+    private var cmdSheetOpen by mutableStateOf(false)
+    /** 正在编辑的条目；非空即弹出编辑对话框。 */
+    private var cmdEditing by mutableStateOf<SavedCmd?>(null)
+    private var cmdEditingNew by mutableStateOf(false)
+    /** 需要二次确认才能执行的条目。 */
+    private var cmdPending by mutableStateOf<SavedCmd?>(null)
+
     /* ===== 对话框 ===== */
     private var showDroid by mutableStateOf(false)
     private var droidLoading by mutableStateOf(false)
@@ -249,6 +274,7 @@ class MainActivity : ComponentActivity() {
         vfsSupport = prefs.getBoolean("vfs_support", false)
         manager = runCatching { ManagerKind.valueOf(prefs.getString("manager", "") ?: "") }
             .getOrDefault(ManagerKind.KERNELSU)
+        savedCmds = CmdStore.load(this)
         kernelVersion = runCatching { android.system.Os.uname().release }.getOrDefault("未知")
         exploit = PROFILE_BY_RELEASE[kernelVersion] ?: ExploitKind.UNSUPPORTED
         if (manager == ManagerKind.DYNAMIC && !supportsUniversal()) manager = ManagerKind.KERNELSU
@@ -313,23 +339,54 @@ class MainActivity : ComponentActivity() {
 
         val palette = Palette(background, surface, ink, dim, accent, line, dark)
 
-        BackHandler(enabled = page != Page.HOME) { page = Page.HOME }
+        BackHandler(enabled = page != Page.HOME || cmdSheetOpen) {
+            when {
+                cmdSheetOpen -> cmdSheetOpen = false
+                else -> page = Page.HOME
+            }
+        }
+        // 离开命令页时把抽屉收起，避免下次进来浮在上面。
+        LaunchedEffect(page) {
+            if (page != Page.COMMANDS) cmdSheetOpen = false
+        }
 
         Box(Modifier.fillMaxSize().background(palette.background)) {
-            if (page == Page.HOME) {
-                HomePage(palette)
-            } else {
-                Column(Modifier.fillMaxSize()) {
-                    SubPageHeader(palette)
-                    when (page) {
-                        Page.COMMANDS -> CommandPage(palette)
-                        Page.EXTRAS -> ExtrasPage(palette)
-                        Page.ABOUT -> AboutPage(palette)
-                        Page.MANUAL -> ManualPage(palette)
-                        Page.HOME -> Unit
+            // 页面切换：轻微横向位移 + 淡入，退出的页面只淡出，避免来回抢视线。
+            AnimatedContent(
+                targetState = page,
+                transitionSpec = {
+                    val dir = if (targetState == Page.HOME) -1 else 1
+                    (fadeIn(tween(220)) + slideInHorizontally(
+                        animationSpec = tween(280, easing = FastOutSlowInEasing)
+                    ) { it / 24 * dir }) togetherWith fadeOut(tween(140))
+                },
+                label = "page"
+            ) { current ->
+                if (current == Page.HOME) {
+                    HomePage(palette)
+                } else {
+                    Column(Modifier.fillMaxSize()) {
+                        SubPageHeader(palette, current)
+                        when (current) {
+                            Page.COMMANDS -> CommandPage(palette)
+                            Page.EXTRAS -> ExtrasPage(palette)
+                            Page.ABOUT -> AboutPage(palette)
+                            Page.MANUAL -> ManualPage(palette)
+                            Page.HOME -> Unit
+                        }
                     }
                 }
             }
+
+            // 抽屉和页面内容同一个 Box，保证遮罩一定盖在内容之上。
+            CmdSheetHost(palette)
+        }
+
+        cmdEditing?.let { target ->
+            CmdEditorDialog(palette, target, cmdEditingNew)
+        }
+        cmdPending?.let { target ->
+            CmdConfirmDialog(palette, target)
         }
 
         if (managerPickerOpen) ManagerPickerDialog(palette) { managerPickerOpen = false }
@@ -337,8 +394,8 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun SubPageHeader(palette: Palette) {
-        val title = when (page) {
+    private fun SubPageHeader(palette: Palette, current: Page) {
+        val title = when (current) {
             Page.COMMANDS -> "命令"
             Page.EXTRAS -> "扩展"
             Page.ABOUT -> "关于"
@@ -632,13 +689,19 @@ class MainActivity : ComponentActivity() {
         ) {
             GhostAction("扩展", Icons.Filled.Extension, palette) { page = Page.EXTRAS }
             GhostAction("命令", Icons.Filled.Terminal, palette) { page = Page.COMMANDS }
+            val mainInteraction = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
                     .weight(1.2f)
                     .height(46.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(if (busy) palette.accent.copy(alpha = 0.45f) else palette.accent)
-                    .clickable(enabled = !busy) { onAuthAction() },
+                    .pressScale(mainInteraction)
+                    .clickable(
+                        interactionSource = mainInteraction,
+                        indication = LocalIndication.current,
+                        enabled = !busy
+                    ) { onAuthAction() },
                 contentAlignment = Alignment.Center
             ) {
                 Txt(
@@ -662,12 +725,14 @@ class MainActivity : ComponentActivity() {
         palette: Palette,
         onClick: () -> Unit
     ) {
+        val interaction = remember { MutableInteractionSource() }
         Row(
             modifier = Modifier
                 .height(46.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(palette.ink.copy(alpha = 0.05f))
-                .clickable { onClick() }
+                .pressScale(interaction)
+                .clickable(interactionSource = interaction, indication = LocalIndication.current) { onClick() }
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -775,6 +840,33 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 )
+                // 存为常用：只在输入框有内容时出现，点开就是编辑对话框（新建）。
+                AnimatedVisibility(
+                    visible = cmdInput.isNotBlank() && !cmdRunning,
+                    enter = fadeIn(tween(140)),
+                    exit = fadeOut(tween(120))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 4.dp)
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(palette.accent.copy(alpha = 0.13f))
+                            .clickable {
+                                val text = cmdInput.trim()
+                                cmdEditingNew = true
+                                cmdEditing = SavedCmd(
+                                    id = 0L,
+                                    nick = CmdStore.defaultNick(text),
+                                    cmd = text,
+                                    confirm = CmdStore.looksRisky(text)
+                                )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Glyph(Icons.Outlined.BookmarkBorder, "存为常用", Modifier.size(17.dp), palette.accent)
+                    }
+                }
                 Box(
                     modifier = Modifier
                         .size(38.dp)
@@ -832,25 +924,304 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+            // 底栏只留一个入口：点开从底部升起常用命令抽屉。
+            val entryInteraction = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp)
             ) {
-                listOf("id", "whoami", "getenforce", "ls /data/adb").forEach { quick ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(palette.ink.copy(alpha = 0.055f))
+                        .pressScale(entryInteraction)
+                        .clickable(interactionSource = entryInteraction, indication = LocalIndication.current) {
+                            keyboard?.hide()
+                            cmdSheetOpen = true
+                        }
+                        .padding(horizontal = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Glyph(Icons.Outlined.BookmarkBorder, null, Modifier.size(16.dp), palette.accent)
+                    Spacer(Modifier.width(8.dp))
+                    Txt("常用命令", 13, palette.ink, FontWeight.Medium)
+                    Spacer(Modifier.weight(1f))
+                    if (savedCmds.isNotEmpty()) {
+                        Txt("${savedCmds.size}", 11.5f, palette.dim, mono = true)
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    Glyph(Icons.Filled.KeyboardArrowUp, null, Modifier.size(17.dp), palette.dim)
+                }
+            }
+        }
+    }
+
+    /* -------- 常用命令抽屉 -------- */
+
+    /**
+     * 抽屉：点底栏入口从下方升起，点遮罩收起。
+     * 用 Animatable 而不是 AnimatedVisibility，是因为遮罩只需要淡、抽屉只需要滑，
+     * 两者动画曲线不同，塞进同一个 AnimatedVisibility 里会互相迁就。
+     */
+    @Composable
+    private fun CmdSheetHost(palette: Palette) {
+        val anim = remember { Animatable(0f) }
+        LaunchedEffect(cmdSheetOpen) {
+            if (cmdSheetOpen) {
+                anim.animateTo(1f, tween(280, easing = FastOutSlowInEasing))
+            } else {
+                anim.animateTo(0f, tween(200, easing = FastOutLinearInEasing))
+            }
+        }
+        val progress = anim.value
+        // 收起且动画结束时彻底不参与布局，否则会一直拦着下面的点击。
+        if (!cmdSheetOpen && progress == 0f) return
+
+        Box(Modifier.fillMaxSize()) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.46f * progress))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { cmdSheetOpen = false }
+            )
+            Column(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        translationY = (1f - progress) * size.height
+                        alpha = progress
+                    }
+                    .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+                    .background(if (palette.dark) Color(0xFF17191E) else Color.White)
+                    .navigationBarsPadding()
+                    .padding(top = 8.dp, bottom = 12.dp)
+            ) {
+                Box(
+                    Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .padding(bottom = 10.dp)
+                        .width(34.dp)
+                        .height(3.5.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(palette.ink.copy(alpha = 0.16f))
+                )
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = 20.dp, end = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Txt("常用命令", 15, palette.ink, FontWeight.Bold, modifier = Modifier.weight(1f))
                     Box(
+                        Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                cmdEditingNew = true
+                                cmdEditing = SavedCmd(0L, "", "", false)
+                            }
+                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Txt("＋ 新建", 12.5f, palette.accent, FontWeight.Medium)
+                    }
+                }
+                Spacer(Modifier.height(2.dp))
+                if (savedCmds.isEmpty()) {
+                    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 26.dp)) {
+                        Txt("还没有常用命令。", 13, palette.ink, FontWeight.Medium)
+                        Spacer(Modifier.height(6.dp))
+                        Txt("在输入框里输命令，点右侧书签就能存下来。", 11.5f, palette.dim)
+                    }
+                } else {
+                    LazyColumn(Modifier.fillMaxWidth().heightIn(max = 392.dp)) {
+                        items(savedCmds, key = { it.id }) { item ->
+                            CmdSheetRow(palette, item)
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Txt(
+                        "点一行直接执行 · 右侧 ⋯ 可改名、置顶或删除",
+                        10.5f,
+                        palette.dim,
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun CmdSheetRow(palette: Palette, item: SavedCmd) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable { runSavedCmd(item) }
+                .padding(start = 20.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Txt(item.nick, 14, palette.ink, maxLines = 1)
+                Spacer(Modifier.height(3.dp))
+                Txt(item.cmd, 11, palette.dim, mono = true, maxLines = 1)
+            }
+            Box(
+                Modifier
+                    .size(32.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(palette.accent.copy(alpha = 0.13f))
+                    .clickable { runSavedCmd(item) },
+                contentAlignment = Alignment.Center
+            ) {
+                Glyph(Icons.Filled.PlayArrow, "执行", Modifier.size(15.dp), palette.accent)
+            }
+            Box(
+                Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .clickable {
+                        cmdEditingNew = false
+                        cmdEditing = item
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Glyph(Icons.Filled.MoreVert, "更多", Modifier.size(17.dp), palette.dim)
+            }
+        }
+    }
+
+    @Composable
+    private fun CmdEditorDialog(palette: Palette, target: SavedCmd, isNew: Boolean) {
+        var nick by remember(target.id, isNew) { mutableStateOf(target.nick) }
+        var cmd by remember(target.id, isNew) { mutableStateOf(target.cmd) }
+        var guarded by remember(target.id, isNew) { mutableStateOf(target.confirm) }
+
+        SnakeDialog(palette, if (isNew) "存为常用命令" else "编辑常用命令", { cmdEditing = null }) {
+            Txt("昵称", 11.5f, palette.dim)
+            Spacer(Modifier.height(6.dp))
+            CmdField(nick, "例如：清微信缓存", palette, mono = false) { nick = it }
+            Spacer(Modifier.height(14.dp))
+            Txt("命令", 11.5f, palette.dim)
+            Spacer(Modifier.height(6.dp))
+            CmdField(cmd, "例如：pm clear com.tencent.mm", palette, mono = true) { text ->
+                cmd = text
+                // 新建时跟着命令走：危险命令自动勾上确认，不用用户自己想起这件事。
+                if (isNew && CmdStore.looksRisky(text)) guarded = true
+            }
+            Spacer(Modifier.height(8.dp))
+            SwitchRow("执行前确认", guarded, palette) { guarded = it }
+            if (!isNew) {
+                Spacer(Modifier.height(4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Txt(
+                        "置顶",
+                        12.5f,
+                        palette.dim,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
-                            .background(palette.ink.copy(alpha = 0.05f))
-                            .clickable { cmdInput = quick }
-                            .padding(horizontal = 9.dp, vertical = 6.dp)
-                    ) {
-                        Txt(quick, 11, palette.dim, mono = true)
+                            .clickable {
+                                pinCommand(target.id)
+                                cmdEditing = null
+                            }
+                            .padding(horizontal = 8.dp, vertical = 8.dp)
+                    )
+                    Txt(
+                        "删除",
+                        12.5f,
+                        Color(0xFFE5484D),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                deleteCommand(target.id)
+                                cmdEditing = null
+                            }
+                            .padding(horizontal = 8.dp, vertical = 8.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DialogButton("取消", false, palette, Modifier.weight(1f)) { cmdEditing = null }
+                DialogButton("保存", true, palette, Modifier.weight(1f)) {
+                    val clean = cmd.trim()
+                    if (clean.isNotEmpty()) {
+                        upsertCommand(target.copy(nick = nick, cmd = clean, confirm = guarded), isNew)
+                        cmdEditing = null
                     }
                 }
             }
+        }
+    }
+
+    @Composable
+    private fun CmdConfirmDialog(palette: Palette, target: SavedCmd) {
+        SnakeDialog(palette, "确认执行", { cmdPending = null }) {
+            Txt("这条命令被标记为执行前需要确认：", 11.5f, palette.dim)
+            Spacer(Modifier.height(10.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(palette.ink.copy(alpha = 0.05f))
+                    .padding(12.dp)
+            ) {
+                Txt(target.cmd, 11.5f, palette.ink, mono = true)
+            }
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DialogButton("取消", false, palette, Modifier.weight(1f)) { cmdPending = null }
+                DialogButton("执行", true, palette, Modifier.weight(1f)) {
+                    val text = target.cmd
+                    cmdPending = null
+                    runCommand(text)
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun CmdField(
+        value: String,
+        placeholder: String,
+        palette: Palette,
+        mono: Boolean,
+        onChange: (String) -> Unit
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(palette.ink.copy(alpha = 0.06f))
+                .padding(horizontal = 13.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                cursorBrush = SolidColor(palette.accent),
+                textStyle = TextStyle(
+                    color = palette.ink,
+                    fontSize = if (mono) 13.5.sp else 14.sp,
+                    fontFamily = if (mono) FontFamily.Monospace else FontFamily.Default
+                ),
+                decorationBox = { inner ->
+                    Box {
+                        if (value.isEmpty()) {
+                            Txt(placeholder, 12.5f, palette.dim.copy(alpha = 0.7f), mono = mono)
+                        }
+                        inner()
+                    }
+                }
+            )
         }
     }
 
@@ -1193,10 +1564,28 @@ class MainActivity : ComponentActivity() {
             onDismissRequest = onDismiss,
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
+            // 对话框进场：轻微放大 + 淡入，避免「啪」地铺满屏幕。
+            var shown by remember { mutableStateOf(false) }
+            LaunchedEffect(Unit) { shown = true }
+            val scale by animateFloatAsState(
+                targetValue = if (shown) 1f else 0.94f,
+                animationSpec = tween(200, easing = FastOutSlowInEasing),
+                label = "dlgScale"
+            )
+            val alpha by animateFloatAsState(
+                targetValue = if (shown) 1f else 0f,
+                animationSpec = tween(150),
+                label = "dlgAlpha"
+            )
             Box(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 28.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        this.alpha = alpha
+                    }
                     .clip(RoundedCornerShape(20.dp))
                     .background(palette.surface)
                     .padding(20.dp)
@@ -1309,6 +1698,30 @@ class MainActivity : ComponentActivity() {
         val line: Color,
         val dark: Boolean
     )
+
+    /**
+     * 按下时轻微回弹。配合 ripple 用，手指按下的瞬间有个「压实」的反馈，
+     * 比只有水波纹更跟手。
+     */
+    @Composable
+    private fun Modifier.pressScale(
+        interaction: MutableInteractionSource,
+        pressedScale: Float = 0.96f
+    ): Modifier {
+        val pressed by interaction.collectIsPressedAsState()
+        val scale by animateFloatAsState(
+            targetValue = if (pressed) pressedScale else 1f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            ),
+            label = "press"
+        )
+        return this.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+    }
 
     @Composable
     private fun Txt(
@@ -1532,10 +1945,57 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun runCommand() {
-        val cmd = cmdInput.trim()
+    /* -------- 常用命令的增删改 -------- */
+
+    private fun runSavedCmd(item: SavedCmd) {
+        cmdSheetOpen = false
+        if (item.confirm) {
+            cmdPending = item
+        } else {
+            runCommand(item.cmd)
+        }
+    }
+
+    private fun upsertCommand(item: SavedCmd, isNew: Boolean) {
+        val clean = item.cmd.trim()
+        if (clean.isEmpty()) return
+        // id 同时是 LazyColumn 的 key，同一毫秒连存两条会撞，这里往后挪到空位。
+        val id = if (isNew || item.id == 0L) {
+            generateSequence(System.currentTimeMillis()) { it + 1 }
+                .first { candidate -> savedCmds.none { it.id == candidate } }
+        } else {
+            item.id
+        }
+        val normalized = item.copy(
+            id = id,
+            nick = item.nick.trim().ifBlank { CmdStore.defaultNick(clean) },
+            cmd = clean
+        )
+        val list = savedCmds.toMutableList()
+        val index = list.indexOfFirst { it.id == id }
+        if (index >= 0) list[index] = normalized else list.add(0, normalized)
+        savedCmds = list
+        CmdStore.save(this, list)
+    }
+
+    private fun deleteCommand(id: Long) {
+        val list = savedCmds.filterNot { it.id == id }
+        savedCmds = list
+        CmdStore.save(this, list)
+    }
+
+    private fun pinCommand(id: Long) {
+        val item = savedCmds.firstOrNull { it.id == id } ?: return
+        val list = listOf(item) + savedCmds.filterNot { it.id == id }
+        savedCmds = list
+        CmdStore.save(this, list)
+    }
+
+    private fun runCommand(text: String? = null) {
+        val cmd = (text ?: cmdInput).trim()
         if (cmd.isEmpty() || cmdRunning) return
-        cmdInput = ""
+        // 从常用命令直接跑时不动输入框，避免把用户正在敲的内容冲掉。
+        if (text == null) cmdInput = ""
         cmdLines.add(CmdLine.Input(cmd))
         cmdRunning = true
         lifecycleScope.launch(Dispatchers.IO) {

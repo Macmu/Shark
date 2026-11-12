@@ -56,6 +56,9 @@ object AdbAuth {
 
     private const val CHANNEL_ID = "shark_adb_auth"
     private const val NOTIFICATION_ID = 7101
+
+    /** 执行前的哨兵行：用来把 shell 的命令回显和真正的输出切开。 */
+    private const val SENTINEL = "__SNAKE_BEGIN__"
     private const val KEY_FILE = "adb.key"
     private const val CERT_FILE = "adb.crt"
 
@@ -187,6 +190,10 @@ object AdbAuth {
         // 关闭 PTY 回显，避免命令本身被当成日志输出。
         output.write("stty -echo 2>/dev/null; export PS1=''; export PROMPT_COMMAND=''\n".toByteArray())
         output.flush()
+        // 等 stty 真正生效再把命令写进去。两条一起发的话，PTY 的 line discipline
+        // 还没来得及关回显，命令会被逐字节回显出来；超长行还会按 80 列折行，
+        // 于是控制台里出现一堆 `export 'HOME=/';` 之类的碎片。
+        Thread.sleep(140)
         output.write((shellLine + "\n").toByteArray())
         output.flush()
 
@@ -198,9 +205,17 @@ object AdbAuth {
         Thread {
             try {
                 val reader = BufferedReader(InputStreamReader(input, Charsets.UTF_8))
+                // 命令写进去之后，交互式 shell 会把整行回显出来，超长行还会按 80 列折行，
+                // 折出来的碎片无法按整行匹配。sentinel 是执行前第一条输出，
+                // 在它之前读到的一切都只可能是回显，直接丢弃。
+                var started = false
                 while (true) {
                     val line = reader.readLine() ?: break
                     val trimmed = line.trim()
+                    if (!started) {
+                        if (trimmed == SENTINEL) started = true
+                        continue
+                    }
                     // 交互式 shell 可能回显写入的命令（甚至被拆行），这些行会
                     // 污染上层以行号解析的状态检测，统一丢弃。
                     val isEcho = trimmed == shellLine.trim() ||
@@ -253,6 +268,7 @@ object AdbAuth {
                     .append('=').append(shQuote(entry.substring(i + 1))).append("; ")
             }
         }
+        sb.append("echo ").append(SENTINEL).append("; ")
         sb.append(cmd.joinToString(" ") { shQuote(it) })
         sb.append(" 2>&1; printf '\\n").append(marker).append("%s\\n' \"$?\"")
         return sb.toString()

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0; padding: 26px 24px 30px;
+    background: #EDEEF1;
+    font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  }
+  .row { display: flex; gap: 26px; align-items: flex-start; margin-bottom: 30px; }
+  .cell { width: 393px; }
+  .cap { font-size: 12.5px; color: #5A5F68; margin-top: 10px; line-height: 1.5; }
+  .cap b { color: #1D2128; font-size: 13.5px; }
+
+  .phone {
+    --bg:#101114; --surface:#1B1D22; --sheet:#17191E;
+    --ink:#F2F3F5; --dim:#8B9098; --accent:#7FB4FF;
+    --fill:rgba(242,243,245,.06); --hair:rgba(242,243,245,.055);
+    --accentfill:rgba(127,180,255,.13);
+    position: relative; width: 393px; height: 852px;
+    background: var(--bg); border-radius: 26px; overflow: hidden;
+    display: flex; flex-direction: column;
+    color: var(--ink); font-size: 13px;
+  }
+  .phone.light {
+    --bg:#FFFFFF; --surface:#F2F3F6; --sheet:#FFFFFF;
+    --ink:#15171B; --dim:#6B7280; --accent:#2C6FF6;
+    --fill:rgba(21,23,27,.055); --hair:rgba(21,23,27,.075);
+    --accentfill:rgba(44,111,246,.12);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.06) inset;
+  }
+
+  .statusbar {
+    height: 34px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; font-size: 11px; color: var(--dim); flex: none;
+  }
+  .header { display: flex; align-items: center; padding: 4px 14px 6px 20px; flex: none; }
+  .header h1 { font-size: 22px; font-weight: 700; margin: 0; flex: 1; letter-spacing: .2px; }
+  .x { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; color: var(--dim); }
+
+  .statusrow {
+    display: flex; align-items: center; padding: 2px 16px 6px 20px; flex: none;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 11px;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #36D167; margin-right: 6px; }
+  .root { color: #36D167; }
+  .clear { color: var(--dim); font-family: -apple-system, "PingFang SC", sans-serif; font-size: 12px; }
+
+  .inputrow {
+    margin: 0 16px; height: 48px; border-radius: 13px; background: var(--surface);
+    display: flex; align-items: center; padding: 0 5px 0 14px; flex: none;
+  }
+  .hash { color: var(--accent); font-weight: 700; font-size: 15px; font-family: ui-monospace, Menlo, monospace; }
+  .ph { color: var(--dim); opacity: .8; font-size: 13px; margin-left: 9px; font-family: ui-monospace, Menlo, monospace; flex: 1; }
+  .cmdtext { color: var(--ink); font-size: 13.5px; margin-left: 9px; font-family: ui-monospace, Menlo, monospace; flex: 1;
+    white-space: nowrap; overflow: hidden; }
+  .send {
+    width: 38px; height: 38px; border-radius: 10px; background: var(--accent);
+    display: flex; align-items: center; justify-content: center; color: #fff;
+    font-size: 17px; font-weight: 700; flex: none;
+  }
+  .savebtn {
+    width: 34px; height: 34px; border-radius: 9px; background: var(--accentfill);
+    display: flex; align-items: center; justify-content: center; margin-right: 4px; flex: none;
+  }
+
+  .console {
+    flex: 1; margin: 8px 16px 0; border-radius: 10px; background: var(--surface);
+    padding: 10px 12px; overflow: hidden;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 10.5px; line-height: 1.62;
+    color: var(--dim);
+  }
+  .console .in { color: var(--accent); }
+  .console .ok { color: var(--dim); }
+  .console .em { color: var(--ink); }
+
+  .chiprow { display: flex; gap: 6px; padding: 10px 16px 0; overflow: hidden; flex: none; }
+  .chip {
+    height: 30px; border-radius: 9px; background: var(--fill);
+    display: flex; align-items: center; padding: 0 11px; font-size: 11.5px; color: var(--ink);
+    opacity: .92; white-space: nowrap; flex: none;
+  }
+  .chip .cd { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); margin-right: 6px; }
+  .chip.all { color: var(--dim); opacity: 1; }
+  .navpad { height: 22px; flex: none; }
+
+  .bottombar { display: flex; align-items: center; gap: 8px; padding: 10px 16px 0; flex: none; }
+  .entry {
+    height: 42px; border-radius: 12px; background: var(--fill);
+    display: flex; align-items: center; padding: 0 13px; gap: 8px; flex: 1;
+  }
+  .entry .lbl { font-size: 13px; font-weight: 500; }
+  .entry .cnt { font-size: 11px; color: var(--dim); margin-left: auto; }
+  .manage { height: 42px; padding: 0 14px; border-radius: 12px; background: var(--fill);
+    display: flex; align-items: center; font-size: 12.5px; color: var(--dim); flex: none; }
+
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.42); }
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; background: var(--sheet);
+    border-radius: 20px 20px 0 0; padding: 8px 0 20px; overflow: hidden;
+  }
+  .grab { width: 34px; height: 3.5px; border-radius: 2px; background: rgba(140,145,155,.3); margin: 4px auto 8px; }
+  .sheethead { display: flex; align-items: center; padding: 2px 18px 8px; }
+  .sheethead .t { font-size: 15px; font-weight: 600; flex: 1; }
+  .sheethead .add { font-size: 12.5px; color: var(--accent); }
+  .srow { display: flex; align-items: center; padding: 9px 18px; gap: 12px; }
+  .srow .txt { flex: 1; min-width: 0; }
+  .srow .nick { font-size: 14px; color: var(--ink); margin-bottom: 3px; }
+  .srow .c { font-size: 11px; color: var(--dim); font-family: ui-monospace, Menlo, monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .srow .play { width: 30px; height: 30px; border-radius: 8px; background: var(--accentfill);
+    display: flex; align-items: center; justify-content: center; flex: none; }
+  .srow .kebab { width: 22px; display: flex; align-items: center; justify-content: center; color: var(--dim); flex: none; }
+  .divider { height: 1px; background: var(--hair); margin: 0 18px; }
+
+  .mrow { display: flex; align-items: center; padding: 12px 20px; gap: 12px; }
+  .mrow .txt { flex: 1; min-width: 0; }
+  .mrow .nick { font-size: 14.5px; margin-bottom: 4px; }
+  .mrow .c { font-size: 11px; color: var(--dim); font-family: ui-monospace, Menlo, monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .grip { color: #4C525B; line-height: 0; }
+
+  .dlgwrap { position: absolute; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; padding: 0 26px; }
+  .dlg { background: var(--sheet); border-radius: 18px; padding: 20px 18px 14px; width: 100%;
+    box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+  .dlg h3 { margin: 0 0 4px; font-size: 15.5px; font-weight: 600; }
+  .dlg .sub { font-size: 11.5px; color: var(--dim); margin-bottom: 14px; }
+  .field { height: 42px; border-radius: 11px; background: var(--fill); display: flex;
+    align-items: center; padding: 0 13px; font-size: 14px; margin-bottom: 10px; }
+  .caret { width: 1.5px; height: 17px; background: var(--accent); margin-left: 2px; }
+  .cmdprev { border-radius: 11px; background: var(--surface); padding: 10px 12px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--dim); line-height: 1.55; }
+  .dlgbtns { display: flex; justify-content: flex-end; gap: 6px; margin-top: 16px; }
+  .btn { height: 36px; padding: 0 16px; border-radius: 10px; display: flex; align-items: center; font-size: 13.5px; }
+  .btn.ghost { color: var(--dim); }
+  .btn.primary { background: var(--accent); color: #fff; font-weight: 600; }
+
+  .sortbar { display: flex; gap: 6px; padding: 8px 16px 0; }
+  .sortbar .chip { font-size: 11px; color: var(--dim); }
+  .sortbar .chip.on { color: var(--accent); background: var(--accentfill); }
+</style>
+</head>
+<body>
+
+<!-- ============ 第一行：三个主方案 ============ -->
+<div class="row">
+
+  <div class="cell">
+    <div class="phone">
+      <div class="statusbar"><span>20:26</span><span>5G ▮▮▮ 87</span></div>
+      <div class="header"><h1>命令</h1>
+        <div class="x"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      </div>
+      <div class="statusrow"><div class="dot"></div><span class="root">root</span><div style="flex:1"></div><span class="clear">清空</span></div>
+
+      <div class="inputrow">
+        <span class="hash">#</span>
+        <span class="cmdtext">pm clear com.tencent.mm</span>
+        <div class="savebtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7FB4FF" stroke-width="1.9" stroke-linejoin="round"><path d="M6 4h12v17l-6-4.2L6 21z"/></svg>
+        </div>
+        <div class="send">↗</div>
+      </div>
+
+      <div class="console">
+        <div class="in">snake:/ # id</div>
+        <div class="ok">uid=0(root) gid=0(root) groups=0(root)</div>
+        <div class="ok">context=u:r:su:s0</div>
+        <div class="in">snake:/ # getenforce</div>
+        <div class="ok">Enforcing</div>
+        <div class="in">snake:/ # ls /data/adb</div>
+        <div class="ok">modules&nbsp; ksud&nbsp; kernelsu&nbsp; update</div>
+        <div class="in">snake:/ # uname -r</div>
+        <div class="ok">6.6.118-android15-8-g9bc34d5b0c79</div>
+        <div class="in">snake:/ # cat /proc/uptime</div>
+        <div class="ok">18422.31 39104.22</div>
+        <div class="in">snake:/ # dumpsys battery | grep level</div>
+        <div class="ok">&nbsp;&nbsp;level: 87</div>
+        <div class="in">snake:/ # ▍</div>
+      </div>
+
+      <div class="chiprow">
+        <div class="chip"><span class="cd"></span>看内核</div>
+        <div class="chip"><span class="cd"></span>清微信缓存</div>
+        <div class="chip"><span class="cd"></span>模块列表</div>
+        <div class="chip"><span class="cd"></span>SELinux</div>
+      </div>
+      <div class="navpad"></div>
+    </div>
+    <div class="cap"><b>方案 A · 昵称胶囊</b><br>底部横排胶囊，点一下直接执行，长按编辑。<br>输入框右侧书签把当前命令存成常用。</div>
+  </div>
+
+  <div class="cell">
+    <div class="phone">
+      <div class="statusbar"><span>20:26</span><span>5G ▮▮▮ 87</span></div>
+      <div class="header"><h1>命令</h1>
+        <div class="x"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      </div>
+      <div class="statusrow"><div class="dot"></div><span class="root">root</span><div style="flex:1"></div><span class="clear">清空</span></div>
+
+      <div class="inputrow">
+        <span class="hash">#</span>
+        <span class="cmdtext">pm clear com.tencent.mm</span>
+        <div class="savebtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7FB4FF" stroke-width="1.9" stroke-linejoin="round"><path d="M6 4h12v17l-6-4.2L6 21z"/></svg>
+        </div>
+        <div class="send">↗</div>
+      </div>
+
+      <div class="console">
+        <div class="in">snake:/ # id</div>
+        <div class="ok">uid=0(root) gid=0(root) groups=0(root)</div>
+        <div class="ok">context=u:r:su:s0</div>
+        <div class="in">snake:/ # getenforce</div>
+        <div class="ok">Enforcing</div>
+        <div class="in">snake:/ # ls /data/adb</div>
+        <div class="ok">modules&nbsp; ksud&nbsp; kernelsu&nbsp; update</div>
+        <div class="in">snake:/ # uname -r</div>
+        <div class="ok">6.6.118-android15-8-g9bc34d5b0c79</div>
+        <div class="in">snake:/ # cat /proc/uptime</div>
+        <div class="ok">18422.31 39104.22</div>
+      </div>
+
+      <div class="bottombar">
+        <div class="entry">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7FB4FF" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+          <span class="lbl">常用命令</span>
+          <span class="cnt">6</span>
+        </div>
+        <div class="manage">管理</div>
+      </div>
+      <div class="navpad"></div>
+    </div>
+    <div class="cap"><b>方案 B · 底部入口 + 抽屉</b><br>底部只占一行，点开从底部升起列表，<br>能看到昵称和命令原文。</div>
+  </div>
+
+  <div class="cell">
+    <div class="phone">
+      <div class="statusbar"><span>20:26</span><span>5G ▮▮▮ 87</span></div>
+      <div class="header"><h1>命令</h1>
+        <div class="x"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      </div>
+      <div class="statusrow"><div class="dot"></div><span class="root">root</span><div style="flex:1"></div><span class="clear">清空</span></div>
+
+      <div class="inputrow">
+        <span class="hash">#</span>
+        <span class="ph">输入命令</span>
+        <div class="send">↗</div>
+      </div>
+
+      <div class="console">
+        <div class="in">snake:/ # dumpsys battery</div>
+        <div class="ok">AC powered: false</div>
+        <div class="ok">USB powered: true</div>
+        <div class="ok">level: 87</div>
+        <div class="ok">status: 2</div>
+        <div class="ok">health: 2</div>
+        <div class="in">snake:/ # ls -l /data/adb/modules</div>
+        <div class="ok">drwxr-xr-x root&nbsp; root&nbsp; zygisk-next</div>
+        <div class="ok">drwxr-xr-x root&nbsp; root&nbsp; susfs4ksu</div>
+        <div class="in">snake:/ # ▍</div>
+      </div>
+
+      <div class="chiprow">
+        <div class="chip"><span class="cd"></span>看内核</div>
+        <div class="chip"><span class="cd"></span>清微信缓存</div>
+        <div class="chip"><span class="cd"></span>模块列表</div>
+        <div class="chip all">全部 6 ›</div>
+      </div>
+      <div class="navpad"></div>
+    </div>
+    <div class="cap"><b>方案 C · 胶囊 + 全部</b><br>常用的直接点，末尾「全部」进列表页增删改；<br>底栏放哪几个由你自己控制。</div>
+  </div>
+</div>
+
+<!-- ============ 第二行：细节视图 ============ -->
+<div class="row">
+
+  <div class="cell">
+    <div class="phone">
+      <div class="statusbar"><span>20:26</span><span>5G ▮▮▮ 87</span></div>
+      <div class="header"><h1>命令</h1>
+        <div class="x"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      </div>
+      <div class="statusrow"><div class="dot"></div><span class="root">root</span><div style="flex:1"></div><span class="clear">清空</span></div>
+      <div class="inputrow">
+        <span class="hash">#</span>
+        <span class="ph">输入命令</span>
+        <div class="send">↗</div>
+      </div>
+      <div class="console"></div>
+      <div class="bottombar">
+        <div class="entry"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7FB4FF" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg><span class="lbl">常用命令</span><span class="cnt">6</span></div>
+        <div class="manage">管理</div>
+      </div>
+      <div class="navpad"></div>
+
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="grab"></div>
+        <div class="sheethead"><span class="t">常用命令</span><span class="add">＋ 新建</span></div>
+        <div class="srow">
+          <div class="txt"><div class="nick">看内核</div><div class="c">uname -r</div></div>
+          <div class="play"><svg width="11" height="11" viewBox="0 0 24 24" fill="#7FB4FF"><path d="M8 5l12 7-12 7z"/></svg></div>
+          <div class="kebab">⋯</div>
+        </div>
+        <div class="divider"></div>
+        <div class="srow">
+          <div class="txt"><div class="nick">清微信缓存</div><div class="c">pm clear com.tencent.mm</div></div>
+          <div class="play"><svg width="11" height="11" viewBox="0 0 24 24" fill="#7FB4FF"><path d="M8 5l12 7-12 7z"/></svg></div>
+          <div class="kebab">⋯</div>
+        </div>
+        <div class="divider"></div>
+        <div class="srow">
+          <div class="txt"><div class="nick">模块列表</div><div class="c">ls -l /data/adb/modules</div></div>
+          <div class="play"><svg width="11" height="11" viewBox="0 0 24 24" fill="#7FB4FF"><path d="M8 5l12 7-12 7z"/></svg></div>
+          <div class="kebab">⋯</div>
+        </div>
+        <div class="divider"></div>
+        <div class="srow">
+          <div class="txt"><div class="nick">SELinux 状态</div><div class="c">getenforce</div></div>
+          <div class="play"><svg width="11" height="11" viewBox="0 0 24 24" fill="#7FB4FF"><path d="M8 5l12 7-12 7z"/></svg></div>
+          <div class="kebab">⋯</div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>B 展开后的抽屉</b><br>昵称在上、命令在下；右侧 ▶ 直接执行，<br>⋯ 里是重命名 / 编辑 / 删除。</div>
+  </div>
+
+  <div class="cell">
+    <div class="phone">
+      <div class="statusbar"><span>20:26</span><span>5G ▮▮▮ 87</span></div>
+      <div class="header"><h1>命令</h1>
+        <div class="x"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div>
+      </div>
+      <div class="statusrow"><div class="dot"></div><span class="root">root</span><div style="flex:1"></div><span class="clear">清空</span></div>
+      <div class="inputrow">
+        <span class="hash">#</span>
+        <span class="cmdtext">pm clear com.tencent.mm</span>
+        <div class="savebtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7FB4FF" stroke-width="1.9" stroke-linejoin="round"><path d="M6 4h12v17l-6-4.2L6 21z"/></svg>
+        </div>
+        <div class="send">↗</div>
+      </div>
+      <div class="console"></div>
+      <div class="chiprow">
+        <div class="chip"><span class="cd"></span>看内核</div>
+        <div class="chip"><span class="cd"></span>清微信缓存</div>
+      </div>
+      <div class="navpad"></div>
+      <div class="dlgwrap">
+        <div class="dlg">
+          <h3>存为常用命令</h3>
+          <div class="sub">起个名字，之后在命令页点一下就能跑</div>
+          <div class="field">清微信缓存<span class="caret"></span></div>
+          <div class="cmdprev">pm clear com.tencent.mm</div>
+          <div class="dlgbtns">
+            <div class="btn ghost">取消</div>
+            <div class="btn primary">保存</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cap"><b>保存对话框</b><br>昵称可改，下面灰字是命令原文，<br>只读预览，不会误改。</div>
+  </div>
+
+  <div class="cell">
+    <div class="phone light">
+      <div class="statusbar"><span>20:26</span><span>5G ▮▮▮ 87</span></div>
+      <div class="header"><h1>常用命令</h1>
+        <div class="x"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></div>
+      </div>
+      <div class="sortbar">
+        <div class="chip on">手动排序</div>
+        <div class="chip">最近使用</div>
+        <div class="chip">名称</div>
+      </div>
+
+      <div class="mrow">
+        <div class="txt"><div class="nick">看内核</div><div class="c">uname -r</div></div>
+        <div class="grip"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="7" r="1.6"/><circle cx="16" cy="7" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg></div>
+      </div>
+      <div class="divider" style="margin:0 20px"></div>
+      <div class="mrow">
+        <div class="txt"><div class="nick">清微信缓存</div><div class="c">pm clear com.tencent.mm</div></div>
+        <div class="grip"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="7" r="1.6"/><circle cx="16" cy="7" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg></div>
+      </div>
+      <div class="divider" style="margin:0 20px"></div>
+      <div class="mrow">
+        <div class="txt"><div class="nick">模块列表</div><div class="c">ls -l /data/adb/modules</div></div>
+        <div class="grip"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="7" r="1.6"/><circle cx="16" cy="7" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg></div>
+      </div>
+      <div class="divider" style="margin:0 20px"></div>
+      <div class="mrow">
+        <div class="txt"><div class="nick">SELinux 状态</div><div class="c">getenforce</div></div>
+        <div class="grip"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="7" r="1.6"/><circle cx="16" cy="7" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg></div>
+      </div>
+      <div class="divider" style="margin:0 20px"></div>
+      <div class="mrow">
+        <div class="txt"><div class="nick">重启系统界面</div><div class="c">killall com.android.systemui</div></div>
+        <div class="grip"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="7" r="1.6"/><circle cx="16" cy="7" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg></div>
+      </div>
+      <div class="divider" style="margin:0 20px"></div>
+      <div class="mrow">
+        <div class="txt"><div class="nick">电池信息</div><div class="c">dumpsys battery</div></div>
+        <div class="grip"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="7" r="1.6"/><circle cx="16" cy="7" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/></svg></div>
+      </div>
+
+      <div style="flex:1"></div>
+      <div style="padding:0 16px 22px">
+        <div style="height:46px;border-radius:13px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:600">新建命令</div>
+      </div>
+    </div>
+    <div class="cap"><b>列表管理页（亮色）</b><br>顶部可切排序；长按拖动，左滑删除，<br>点行编辑；底部新建。</div>
+  </div>
+</div>
+
+</body>
+</html>
