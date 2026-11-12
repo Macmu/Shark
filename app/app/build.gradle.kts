@@ -95,4 +95,10 @@ dependencies {
     implementation("dev.rikka.shizuku:aidl:13.1.5")
     implementation("dev.rikka.shizuku:provider:13.1.5")
     implementation("com.github.roro2239:Stellar-API:1.0.3")
+
+    // 内置授权：App 内直连本机 adbd，无需额外安装 Shizuku / Stellar。
+    // libadb-android: GPL-3.0-or-later OR Apache-2.0（传递 spake2-android、bcprov）。
+    implementation("com.github.MuntashirAkon:libadb-android:3.1.1")
+    implementation("org.conscrypt:conscrypt-android:2.5.3")
+    implementation("org.bouncycastle:bcpkix-jdk15to18:1.81")
 }

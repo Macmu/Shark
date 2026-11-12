@@ -29,7 +29,8 @@ profile-switch module described in entry 9.
 2. Shizuku API
    Source: https://github.com/RikkaApps/Shizuku-API
    License: Apache-2.0
-   Used: remote process execution.
+   Used: optional fallback remote process execution (no longer required
+         for the primary flow, see entry 10).
 
 3. SUSFS guard LKM (susfs4ksu-lkm)
    Source: https://github.com/inforcqb/susfs4ksu-lkm (baseline b69dee4, rebased to 28b2e85)
@@ -54,8 +55,9 @@ profile-switch module described in entry 9.
    Source: https://github.com/roro2239/Stellar (manager),
            https://github.com/roro2239/Stellar-API (SDK, JitPack com.github.roro2239:Stellar-API:1.0.3)
    License: MPL-2.0 (Stellar modifications) / Apache-2.0 (Shizuku base code).
-   Used: privileged backend preferred at runtime (StellarProvider + roro.stellar API);
-         Shizuku (entry 2) remains the fallback backend.
+   Used: optional fallback backend (StellarProvider + roro.stellar API). The
+         built-in ADB authorization (entry 10) is now preferred at runtime;
+         Shizuku (entry 2) remains the second fallback.
 
 6. COUI-Kit
    Source: https://github.com/ItosEO/COUI-Kit
@@ -89,5 +91,31 @@ profile-switch module described in entry 9.
           tables. Local modifications and build steps are documented in the
           KSU-Universal project README. The manager APKs' own ksud binaries
           remain external (see "Supported managers" above).
+
+10. libadb-android (built-in authorization)
+    Source: https://github.com/MuntashirAkon/libadb-android
+    License: GPL-3.0-or-later OR Apache-2.0 (dual licensed; this build uses
+             the GPL-3.0-or-later option, compatible with this project's
+             GPL-3.0). Upstream states the library has not been security
+             audited.
+    Used: in-app ADB over TLS client: wireless-debugging pairing (SPAKE2),
+          mDNS service discovery and shell: stream execution, replacing the
+          requirement to install Shizuku / Stellar. Transitive artifacts:
+          spake2-android (libspake2.so), bcprov-jdk15to18.
+
+11. Conscrypt (Android)
+    Source: https://github.com/google/conscrypt
+    License: Apache-2.0
+    Used: TLSv1.3 and exported keying material for ADB wireless pairing.
+
+12. Bouncy Castle (bcprov / bcpkix)
+    Source: https://www.bouncycastle.org
+    License: Bouncy Castle license (MIT-style)
+    Used: generation of the self-signed RSA/X.509 ADB client identity.
+
+13. spake2-java (spake2-android)
+    Source: https://github.com/MuntashirAkon/spake2-java
+    License: see upstream repository (not declared in the published POM).
+    Used: SPAKE2 pairing handshake; ships lib/arm64-v8a/libspake2.so.
 
 The application icon is drawn by this project.

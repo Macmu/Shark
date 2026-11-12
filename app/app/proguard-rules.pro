@@ -7,3 +7,17 @@
 -keep class com.stellar.** { *; }
 -dontwarn roro.stellar.**
 -dontwarn com.stellar.**
+
+# 内置授权：ADB 协议、TLS 导出与 SPAKE2 均通过反射 / JNI 访问，保留类名与方法名。
+-keep class io.github.muntashirakon.** { *; }
+-keep class org.conscrypt.** { *; }
+-keep class org.bouncycastle.** { *; }
+-keep class com.shark.kty.AdbAuth { *; }
+-keep class com.shark.kty.AdbAuth$** { *; }
+-keep class com.shark.kty.AdbPairingReceiver { *; }
+-keep class com.shark.kty.PrivService { *; }
+-keep class com.shark.kty.PrivProcess { *; }
+-keep class com.shark.kty.PrivBackend { *; }
+-dontwarn io.github.muntashirakon.**
+-dontwarn org.conscrypt.**
+-dontwarn org.bouncycastle.**

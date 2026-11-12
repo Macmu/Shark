@@ -309,6 +309,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        // 配对在通知栏完成后回到 App，这里刷新连接状态。
+        binderReady = PrivService.pick() != null
+        refreshAuth()
         if (updateCheckedThisForeground) return
         updateCheckedThisForeground = true
         if (updateDialogVisible || updateDownloading) return
@@ -424,6 +427,14 @@ class MainActivity : ComponentActivity() {
         Stellar.addBinderReceivedListenerSticky(stellarBinderListener)
         binderReady = PrivService.pick() != null
         refreshAuth()
+        // 已配对过的设备可在启动时静默重连无线调试，无需再次输入配对码。
+        lifecycleScope.launch(Dispatchers.IO) {
+            runCatching { AdbAuth.connect(applicationContext) }
+            withContext(Dispatchers.Main) {
+                binderReady = PrivService.pick() != null
+                refreshAuth()
+            }
+        }
         antiRootGuard = getSharedPreferences("pyb110", MODE_PRIVATE).getBoolean("antiroot_guard", true)
         softRebootAfter = getSharedPreferences("pyb110", MODE_PRIVATE).getBoolean("soft_reboot_after", false)
         unloadGuard = getSharedPreferences("pyb110", MODE_PRIVATE).getBoolean("unload_guard", true)
@@ -1229,7 +1240,7 @@ class MainActivity : ComponentActivity() {
     private fun StatusCard(granted: Boolean) {
         val dark = CouiTheme.isDark
         val colors = CouiPageDefaults.themeColors(dark)
-        val backendName = PrivService.pick()?.label ?: "Stellar"
+        val backendName = PrivService.pick()?.label ?: "内置授权"
         val green = if (dark) Color(0xFF1A3825) else Color(0xFFDFFAE4)
         val greenTint = Color(0xFF36D167)
         Group(colors = colors.copy(card = if (granted) green else colors.card)) {
@@ -1242,7 +1253,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     Column {
                         Text(
-                            text = if (granted) "$backendName 已授权" else "$backendName 未授权",
+                            text = if (granted) "$backendName 已就绪" else "$backendName 未连接",
                             kind = CouiTextKind.PageTitle,
                             color = colors.title,
                             textAlign = TextAlign.Start
@@ -1250,7 +1261,7 @@ class MainActivity : ComponentActivity() {
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = if (granted) "已连接到 $backendName，可尝试越狱"
-                            else "未连接到 $backendName，请授予权限",
+                            else "点下方按钮完成无线调试配对，无需安装 Shizuku",
                             kind = CouiTextKind.Body,
                             color = colors.title,
                             textAlign = TextAlign.Start
@@ -1277,8 +1288,8 @@ class MainActivity : ComponentActivity() {
         val colors = CouiPageDefaults.themeColors()
         val label = when {
             busy -> "运行中…"
-            !binderReady -> "Stellar 未运行（点击打开）"
-            !authorized -> "授权 Shizuku"
+            !binderReady -> "连接设备（内置授权）"
+            !authorized -> "请求授权"
             ksuActive -> "校验 / 再次越狱"
             else -> "一键越狱"
         }
@@ -1287,10 +1298,7 @@ class MainActivity : ComponentActivity() {
                 onClick = {
                     if (!busy) {
                         when {
-                            !binderReady -> {
-                                addLog("Start Stellar or Shizuku first")
-                                PrivService.openManager(applicationContext)
-                            }
+                            !binderReady -> startBuiltinAuth()
                             !authorized -> PrivService.request(REQ_SHIZUKU)
                             else -> runFlow()
                         }
@@ -2186,7 +2194,39 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun refreshAuth() {
+        binderReady = PrivService.pick() != null
         authorized = PrivService.granted()
+    }
+
+    /** 主按钮在「未连接」时启动内置授权流程；不改动现有界面结构。 */
+    private fun startBuiltinAuth() {
+        when (AdbAuth.startPairingFlow(applicationContext)) {
+            AdbAuth.StartState.CONNECTED -> {
+                refreshAuth()
+                addLog("内置授权已连接（无线调试）")
+            }
+            AdbAuth.StartState.PAIRING -> addLog(
+                "请打开「无线调试 → 使用配对码配对设备」，保持弹窗开启，然后在通知栏输入六位配对码；完成后回到本页"
+            )
+            AdbAuth.StartState.NEED_PERMISSIONS -> {
+                addLog("申请本地网络与通知权限…")
+                requestPermissions(AdbAuth.requiredPermissions(), REQ_ADB_PERM)
+            }
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != REQ_ADB_PERM) return
+        if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+            startBuiltinAuth()
+        } else {
+            addLog("本地网络/通知权限被拒绝，无法发现无线调试服务")
+        }
     }
 
     private fun refreshKsuAsync() {
@@ -2428,7 +2468,7 @@ class MainActivity : ComponentActivity() {
                     return@launch
                 }
                 if (PrivService.pick() == null) {
-                    addLog("No privileged backend (Stellar/Shizuku) running")
+                    addLog("未连接内置授权：请先点主按钮完成无线调试配对")
                     return@launch
                 }
                 val (alreadyActive, _) = readDeviceState()
@@ -2595,6 +2635,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         private const val REQ_SHIZUKU = 1001
+        private const val REQ_ADB_PERM = 1002
         private val PROFILE_BY_RELEASE: Map<String, ExploitKind> = mapOf(
             "6.18.21-android17-5-gf957accaf563-ab15926176-4k" to ExploitKind.CVE61821,
             "6.18.21-android17-5-g7fcbffcad3e1-ab16353812-4k" to ExploitKind.CVE61821,

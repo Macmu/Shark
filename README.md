@@ -13,7 +13,7 @@
 </p>
 
 Shark 支持 OnePlus、OPPO、Realme、iQOO 等设备，不用解锁 BL，起手只需要
-adb shell；App 通过 Stellar 或 Shizuku 驱动设备端 exploit，拿到临时内核
+adb shell；App 通过内置授权（自身连接本机无线调试 ADB）驱动设备端 exploit，拿到临时内核
 权限后按所选管理器加载 LKM，最终得到 KernelSU、KernelSU-Next、BakaSU、
 SukiSU Ultra 或 FinaSU 的 root 环境。
 
@@ -120,7 +120,7 @@ LKM。这就是该管理器原生的 root 环境。
 ## 使用
 
 1. 安装要用的管理器 APK。想用 Dynamic Switching 的话，建议五家都装上。
-2. 启动 Stellar 或 Shizuku，授权 Shark。
+2. 首页点「连接设备（内置授权）」，打开开发者选项的「无线调试 → 使用配对码配对设备」，在通知栏输入六位配对码。无需安装或启动 Shizuku / Stellar；已运行 Stellar / Shizuku 的设备仍可作为可选兜底。
 3. 在 ROOT 管理器下拉里选普通管理器或 `Dynamic Switching`。
 4. 按需打开拓展功能。
 5. 点「一键越狱」，等日志出现 `DONE`。
@@ -171,8 +171,8 @@ Shark/
 
 **模块分工**
 
-- `app/`：Kotlin/Compose 界面、Shizuku/Stellar 调用、漏洞链选择、
-  拓展开关、日志与在线更新。
+- `app/`：Kotlin/Compose 界面、内置 ADB 授权（libadb-android）、
+  可选的 Shizuku/Stellar 兜底、漏洞链选择、拓展开关、日志与在线更新。
 - `exploit/`：Rust 单入口 runner 和 C plant，负责提权、fake cred、
   `ksud late-load` 与收尾。
 - `lkm/`：SUSFS guard 和 Hybrid Mount VFS provider 的源码与构建脚本。
@@ -181,7 +181,8 @@ Shark/
 
 **技术栈**
 
-- App：Kotlin、Jetpack Compose、COUI-Kit、Shizuku / Stellar API。
+- App：Kotlin、Jetpack Compose、COUI-Kit、libadb-android（内置授权）、
+  Shizuku / Stellar API（可选兜底）。
 - 设备端：Rust + C，Android NDK arm64。
 - 内核侧：C / GPL-2.0 LKM；通用 KSU KO 在独立项目
   [KSU-Universal](https://github.com/Yunnijian/KSU-Universal)。
@@ -232,7 +233,8 @@ Shark 只内置编译好的 `libksud_universal.so`。
 - 通用 KSU LKM 基于 SukiSU Ultra，GPL-3.0。
 - SUSFS guard 和 Hybrid Mount 为 GPL-2.0。
 - CVE-2026-98260 设计参考 AzirX1337 的公开移植（MIT）。
-- UI 使用 COUI-Kit（MPL-2.0），远程执行使用 Shizuku API（Apache-2.0）。
+- UI 使用 COUI-Kit（MPL-2.0）；内置授权使用 libadb-android（GPL-3.0-or-later OR Apache-2.0）、
+  Conscrypt（Apache-2.0）、BouncyCastle（MIT 风格许可）、spake2-java；可选兜底使用 Shizuku API（Apache-2.0）。
 
 ## 发布
 

@@ -5,6 +5,8 @@ local.properties
 .kotlin/
 *.apk
 *.aab
+# 交付的自签名 release APK 需要随仓库分发
+!dist/*.apk
 
 # Signing (never commit)
 keystore.properties
