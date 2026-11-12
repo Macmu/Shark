@@ -1,4 +1,4 @@
-<h1 align="center"><img src="docs/images/app-icon.png" width="56" height="56" align="absmiddle" alt="Snake"> Snake</h1>
+<h1 align="center"><img src="docs/images/snake-icon-v1.png" width="56" height="56" align="absmiddle" alt="Snake"> Snake</h1>
 
 <p align="center"><b>多机型 Android 一键临时 Root · 内置授权，免装 Shizuku</b></p>
 
@@ -22,10 +22,10 @@ Snake 是 [Shark](https://github.com/Yunnijian/Shark) 的改版：界面重做�
 
 <table align="center">
   <tr>
-    <td align="center"><img src="docs/screenshots/app-home.jpg" width="200" alt="首页"><br><sub><b>首页</b></sub></td>
-    <td align="center"><img src="docs/screenshots/app-command.jpg" width="200" alt="命令"><br><sub><b>命令</b></sub></td>
-    <td align="center"><img src="docs/screenshots/app-extras.jpg" width="200" alt="扩展"><br><sub><b>扩展</b></sub></td>
-    <td align="center"><img src="docs/screenshots/app-about.jpg" width="200" alt="关于"><br><sub><b>关于</b></sub></td>
+    <td align="center"><img src="docs/screenshots/shot-home-v1.jpg" width="200" alt="首页"><br><sub><b>首页</b></sub></td>
+    <td align="center"><img src="docs/screenshots/shot-command-v1.jpg" width="200" alt="命令"><br><sub><b>命令</b></sub></td>
+    <td align="center"><img src="docs/screenshots/shot-extras-v1.jpg" width="200" alt="扩展"><br><sub><b>扩展</b></sub></td>
+    <td align="center"><img src="docs/screenshots/shot-about-v1.jpg" width="200" alt="关于"><br><sub><b>关于</b></sub></td>
   </tr>
 </table>
 
