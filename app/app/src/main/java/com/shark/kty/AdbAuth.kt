@@ -98,7 +98,21 @@ object AdbAuth {
             ?: error("未发现无线调试配对服务，请确认「使用配对码配对设备」弹窗仍打开")
         val m = ensureManager(context)
         m.setHostAddress("127.0.0.1")
-        if (!m.pair(port, code)) error("配对失败：配对码错误或已超时，关闭弹窗后重新打开再试")
+        var paired = false
+        var lastError: Throwable? = null
+        // 不同 ROM 的配对服务可能只监听回环或某个局域网地址，逐个候选尝试。
+        for (host in candidateHosts()) {
+            val ok = runCatching { m.pair(host, port, code) }
+                .onFailure { lastError = it }
+                .getOrDefault(false)
+            if (ok) {
+                paired = true
+                break
+            }
+        }
+        if (!paired) error(
+            "配对失败：${lastError?.message ?: "配对码错误或已超时，关闭弹窗后重新打开再试"}"
+        )
         val ok = m.connectTls(context.applicationContext, 15_000L)
         connected = ok && m.isConnected
         if (!isReady()) error("配对成功但连接失败，请确认「无线调试」开关已打开")
@@ -155,10 +169,14 @@ object AdbAuth {
                 while (true) {
                     val line = reader.readLine() ?: break
                     if (line.contains("stty -echo") || line.contains("PROMPT_COMMAND") || line.contains("export PS1")) continue
-                    val match = rcPattern.find(line)
-                    if (match != null) {
-                        exitCode = match.groupValues[1].toIntOrNull() ?: -1
-                        break
+                    if (line.contains(marker)) {
+                        val match = rcPattern.find(line)
+                        if (match != null) {
+                            exitCode = match.groupValues[1].toIntOrNull() ?: -1
+                            break
+                        }
+                        // 命令回显也含 marker 但没有退出码，不作为日志输出。
+                        continue
                     }
                     pipe.append((line + "\n").toByteArray(Charsets.UTF_8))
                 }
@@ -201,6 +219,23 @@ object AdbAuth {
     }
 
     private fun shQuote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+    private fun candidateHosts(): List<String> {
+        val hosts = mutableListOf("127.0.0.1")
+        runCatching {
+            val interfaces = java.net.NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val addresses = interfaces.nextElement().inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val addr = addresses.nextElement()
+                    if (addr is java.net.Inet4Address && !addr.isLoopbackAddress && !addr.isLinkLocalAddress) {
+                        addr.hostAddress?.let { hosts.add(it) }
+                    }
+                }
+            }
+        }
+        return hosts.distinct()
+    }
 
     private fun discoverPairingPort(context: Context): Int? {
         val found = AtomicInteger(0)
