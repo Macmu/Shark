@@ -199,7 +199,15 @@ object AdbAuth {
                 val reader = BufferedReader(InputStreamReader(input, Charsets.UTF_8))
                 while (true) {
                     val line = reader.readLine() ?: break
-                    if (line.contains("stty -echo") || line.contains("PROMPT_COMMAND") || line.contains("export PS1")) continue
+                    val trimmed = line.trim()
+                    // 交互式 shell 可能回显写入的命令（甚至被拆行），这些行会
+                    // 污染上层以行号解析的状态检测，统一丢弃。
+                    val isEcho = trimmed == shellLine.trim() ||
+                        (trimmed.startsWith("cd ") && trimmed.contains("export '")) ||
+                        trimmed.contains("stty -echo") ||
+                        trimmed.contains("PROMPT_COMMAND") ||
+                        trimmed.contains("export PS1")
+                    if (isEcho) continue
                     if (line.contains(marker)) {
                         val match = rcPattern.find(line)
                         if (match != null) {
@@ -377,16 +385,31 @@ object AdbAuth {
         context.getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID, notification)
     }
 
+    /** 配对输入通知在用户提交配对码后立即收起，避免常驻通知栏。 */
+    fun dismissPairingNotification(context: Context) {
+        runCatching {
+            context.getSystemService(NotificationManager::class.java)?.cancel(NOTIFICATION_ID)
+        }
+    }
+
     fun notifyResult(context: Context, message: String) {
         ensureChannel(context)
+        dismissPairingNotification(context)
+        val nm = context.getSystemService(NotificationManager::class.java)
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Shark 内置授权")
             .setContentText(message)
             .setStyle(NotificationCompat.BigTextStyle().bigText(message))
             .setAutoCancel(true)
+            .setTimeoutAfter(10_000L)
             .build()
-        context.getSystemService(NotificationManager::class.java)?.notify(NOTIFICATION_ID + 1, notification)
+        nm?.notify(NOTIFICATION_ID + 1, notification)
+        // 部分 ROM 会忽略 setTimeoutAfter，用主线程延迟取消兜底，
+        // 保证结果通知不会一直留在通知栏。
+        mainHandler.postDelayed({
+            runCatching { nm?.cancel(NOTIFICATION_ID + 1) }
+        }, 10_000L)
     }
 
     private fun openDeveloperSettings(context: Context) {

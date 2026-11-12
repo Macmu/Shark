@@ -128,6 +128,7 @@ import rikka.shizuku.Shizuku
 import roro.stellar.Stellar
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.BasicText
@@ -1216,10 +1217,7 @@ class MainActivity : ComponentActivity() {
             )
         ) {
             item {
-                StatusCard(granted = binderReady && authorized)
-            }
-            item {
-                PrimaryActionCard()
+                AuthActionCard()
             }
             item {
                 HomeEntriesCard()
@@ -1236,84 +1234,79 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * 授权状态与主操作合并为一张紧凑卡片：左侧显示「未授权 / 已授权」，
+     * 右侧是「一键授权 / 一键越狱」按钮。去掉了原本与文字重叠的大号对勾。
+     */
     @Composable
-    private fun StatusCard(granted: Boolean) {
-        val dark = CouiTheme.isDark
-        val colors = CouiPageDefaults.themeColors(dark)
-        val backendName = PrivService.pick()?.label ?: "内置授权"
-        val green = if (dark) Color(0xFF1A3825) else Color(0xFFDFFAE4)
-        val greenTint = Color(0xFF36D167)
-        Group(colors = colors.copy(card = if (granted) green else colors.card)) {
-            Box(modifier = Modifier.fillMaxWidth().height(140.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 16.dp, top = 14.dp, end = 16.dp, bottom = 14.dp),
-                    contentAlignment = Alignment.TopStart
-                ) {
-                    Column {
+    private fun AuthActionCard() {
+        val colors = CouiPageDefaults.themeColors()
+        val ready = binderReady && authorized
+        val actionLabel = when {
+            busy -> "运行中…"
+            !ready -> "一键授权"
+            else -> "一键越狱"
+        }
+        Group(colors = colors) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(if (ready) Color(0xFF36D167) else Color(0xFF9AA0A6))
+                        )
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            text = if (granted) "$backendName 已就绪" else "$backendName 未连接",
-                            kind = CouiTextKind.PageTitle,
+                            text = if (ready) "已授权" else "未授权",
+                            kind = CouiTextKind.SectionTitle,
                             color = colors.title,
                             textAlign = TextAlign.Start
                         )
+                    }
+                    if (!ready) {
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            text = if (granted) "已连接到 $backendName，可尝试越狱"
-                            else "点下方按钮完成无线调试配对，无需安装 Shizuku",
+                            text = "点右侧按钮完成授权",
                             kind = CouiTextKind.Body,
                             color = colors.title,
                             textAlign = TextAlign.Start
                         )
                     }
                 }
+                Spacer(Modifier.width(10.dp))
                 Box(
-                    modifier = Modifier.fillMaxSize().padding(end = 20.dp, bottom = 12.dp),
-                    contentAlignment = Alignment.BottomEnd
+                    modifier = Modifier
+                        .widthIn(min = 96.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(if (busy) colors.disabled else colors.accent)
+                        .clickable(enabled = !busy) { onAuthAction() }
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    AppIcon(
-                        Icons.Rounded.CheckCircleOutline,
-                        null,
-                        Modifier.size(100.dp),
-                        tint = if (granted) greenTint else Color(0xFF9AA0A6)
+                    Text(
+                        text = actionLabel,
+                        kind = CouiTextKind.Body,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
         }
     }
 
-    @Composable
-    private fun PrimaryActionCard() {
-        val colors = CouiPageDefaults.themeColors()
-        val label = when {
-            busy -> "运行中…"
-            !binderReady -> "连接设备（内置授权）"
-            !authorized -> "请求授权"
-            ksuActive -> "校验 / 再次越狱"
-            else -> "一键越狱"
-        }
-        Group {
-            Item(
-                onClick = {
-                    if (!busy) {
-                        when {
-                            !binderReady -> startBuiltinAuth()
-                            !authorized -> PrivService.request(REQ_SHIZUKU)
-                            else -> runFlow()
-                        }
-                    }
-                },
-                enabled = !busy,
-                trailing = { Chevron() }
-            ) {
-                Text(
-                    text = label,
-                    kind = CouiTextKind.SectionTitle,
-                    color = if (busy) colors.disabled else colors.accent,
-                    textAlign = TextAlign.Start
-                )
-            }
+    private fun onAuthAction() {
+        if (busy) return
+        when {
+            !binderReady -> startBuiltinAuth()
+            !authorized -> PrivService.request(REQ_SHIZUKU)
+            else -> runFlow()
         }
     }
 
@@ -2279,8 +2272,11 @@ class MainActivity : ComponentActivity() {
         val lines = p.getInputStream()
             .bufferedReader().readLines()
         p.waitFor()
-        val active = lines.getOrNull(0)?.trim() == "YES"
-        val se = mapSelinux(lines.getOrNull(1)?.trim().orEmpty())
+        // ADB shell 会话可能夹带回显或空行，不能假设状态一定在固定行号。
+        val active = lines.any { it.trim().equals("YES", ignoreCase = true) }
+        val se = lines.map { mapSelinux(it.trim()) }
+            .firstOrNull { it != "未知" } ?: "未知"
+        if (!active) addLog("device state raw: ${lines.take(6).joinToString(" | ")}")
         return active to se
     }
 
@@ -2528,20 +2524,25 @@ class MainActivity : ComponentActivity() {
                     }
                     return@launch
                 }
-                val rc = runStreaming(cmd, nativeDir)
+                val (rc, transcript) = runStreaming(cmd, nativeDir)
                 exit = rc
                 addLog("exploit exit=$rc")
                 val (active, se) = readDeviceState()
-                success = rc == 0 && active
+                // runner 打印的 DONE 是越狱成功最直接的证据；ADB shell 回显
+                // 可能让状态检测误判，任一成立即视为已加载，避免历史误记失败
+                // 并让软重启等后续操作正常执行。
+                val runnerOk = transcript.lineSequence().any { it.trim() == "DONE" }
+                val loaded = active || runnerOk
+                success = (rc == 0 || runnerOk) && loaded
                 withContext(Dispatchers.Main) {
-                    ksuActive = active
+                    ksuActive = loaded
                     selinuxText = se
                 }
-                addLog(if (active) "KernelSU module loaded" else "KernelSU module not loaded")
-                if (active && !softReboot) {
+                addLog(if (loaded) "KernelSU module loaded" else "KernelSU module not loaded")
+                if (loaded && !softReboot) {
                     withContext(Dispatchers.Main) { launchManager() }
                 }
-                if (softReboot && rc == 0 && active) {
+                if (softReboot && rc == 0 && loaded) {
                     addLog("Jailbreak complete; restarting zygote")
                     val rebootRc = runCatching {
                         PrivService.newProcess(
@@ -2560,7 +2561,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun runStreaming(cmd: Array<String>, dir: String): Int {
+    private fun runStreaming(cmd: Array<String>, dir: String): Pair<Int, String> {
         val susfsKo = if (exploit == ExploitKind.CVE61821) {
             "${applicationInfo.nativeLibraryDir}/libsusfs_guard_lkm.so"
         } else {
@@ -2583,16 +2584,21 @@ class MainActivity : ComponentActivity() {
         val p = PrivService.newProcess(cmd, env, dir)
         val out = p.getInputStream()
         val err = p.getErrorStream()
+        val transcript = StringBuilder()
+        fun record(line: String) {
+            addLog(line)
+            synchronized(transcript) { transcript.append(line).append('\n') }
+        }
         val t1 = Thread {
             try {
-                out.bufferedReader().forEachLine { addLog(it) }
+                out.bufferedReader().forEachLine { record(it) }
             } catch (t: Throwable) {
                 // stream closed by waitFor() cleanup
             }
         }.apply { isDaemon = true; start() }
         val t2 = Thread {
             try {
-                err.bufferedReader().forEachLine { addLog(it) }
+                err.bufferedReader().forEachLine { record(it) }
             } catch (t: Throwable) {
                 // stream closed by waitFor() cleanup
             }
@@ -2602,7 +2608,7 @@ class MainActivity : ComponentActivity() {
         runCatching { err.close() }
         t1.join(2000)
         t2.join(2000)
-        return rc
+        return rc to synchronized(transcript) { transcript.toString() }
     }
 
     override fun onDestroy() {

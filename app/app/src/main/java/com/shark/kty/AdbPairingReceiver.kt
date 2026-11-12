@@ -15,12 +15,14 @@ class AdbPairingReceiver : BroadcastReceiver() {
             ?: intent.getStringExtra(AdbAuth.KEY_PAIR_CODE))
             ?.trim().orEmpty()
 
+        val appContext = context.applicationContext
+        // 用户提交配对码后立刻收起输入通知；结果通知短暂停留后自动消失。
+        AdbAuth.dismissPairingNotification(appContext)
+
         if (code.length != 6 || !code.all { it.isDigit() }) {
-            AdbAuth.notifyResult(context, "配对码应为六位数字，请重新输入")
+            runCatching { AdbAuth.notifyResult(appContext, "配对码应为六位数字，请重新输入") }
             return
         }
-
-        val appContext = context.applicationContext
         // 不用 goAsync()：配对包含 mDNS/TLS 等待，常超过前台广播 10 秒时限，
         // 持有 PendingResult 会触发 BroadcastTimeout ANR。广播立即结束，
         // 由独立（非 daemon）线程继续配对，避免线程随进程回收被中断。
