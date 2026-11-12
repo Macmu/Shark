@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Snake 图标前景（暗色版）：浅蓝蛇头 + 深色眼窝，跟随系统深色模式切换 -->
+<!--
+  Snake 图标前景（深色模式）：底色改为深海军蓝 #1B2740，蛇脸用高饱和亮蓝，
+  避免之前「近黑底 + 灰蓝」的压抑感。
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -7,39 +10,48 @@
     android:viewportHeight="512">
 
     <group
-        android:scaleX="0.9"
-        android:scaleY="0.9"
+        android:scaleX="1.05"
+        android:scaleY="1.05"
         android:pivotX="256"
         android:pivotY="256"
-        android:translateY="10">
+        android:translateY="29">
 
         <path
-            android:fillColor="#7FB4FF"
-            android:pathData="M226,96 C236,90 246,88 256,88 C266,88 276,90 286,96 C330,150 362,210 378,252 C388,278 376,302 352,316 C322,332 290,342 256,342 C222,342 190,332 160,316 C136,302 124,278 134,252 C150,210 182,150 226,96 Z" />
-
-        <group
-            android:pivotX="205"
-            android:pivotY="238"
-            android:rotation="-24">
-            <path
-                android:fillColor="#15171B"
-                android:pathData="M193,238 a12,34 0 1,0 24,0 a12,34 0 1,0 -24,0" />
-        </group>
-
-        <group
-            android:pivotX="307"
-            android:pivotY="238"
-            android:rotation="24">
-            <path
-                android:fillColor="#15171B"
-                android:pathData="M295,238 a12,34 0 1,0 24,0 a12,34 0 1,0 -24,0" />
-        </group>
+            android:fillColor="#4FA8FF"
+            android:pathData="M256,100 C330,100 382,154 382,228 C382,300 330,356 256,356 C182,356 130,300 130,228 C130,154 182,100 256,100 Z" />
 
         <path
-            android:pathData="M256,334 L256,372 M256,372 L230,402 M256,372 L282,402"
-            android:strokeColor="#7FB4FF"
-            android:strokeWidth="18"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
+            android:fillColor="#FFFFFF"
+            android:pathData="M159,210 a41,41 0 1,0 82,0 a41,41 0 1,0 -82,0 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M271,210 a41,41 0 1,0 82,0 a41,41 0 1,0 -82,0 Z" />
+
+        <path
+            android:fillColor="#0E1C33"
+            android:pathData="M181,215 a23,23 0 1,0 46,0 a23,23 0 1,0 -46,0 Z" />
+        <path
+            android:fillColor="#0E1C33"
+            android:pathData="M293,215 a23,23 0 1,0 46,0 a23,23 0 1,0 -46,0 Z" />
+
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M187,205 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M299,205 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 Z" />
+
+        <path
+            android:fillColor="#FF9DB6"
+            android:pathData="M138,276 a22,14 0 1,0 44,0 a22,14 0 1,0 -44,0 Z" />
+        <path
+            android:fillColor="#FF9DB6"
+            android:pathData="M330,276 a22,14 0 1,0 44,0 a22,14 0 1,0 -44,0 Z" />
+
+        <path
+            android:pathData="M236,292 Q256,308 276,292"
+            android:strokeColor="#0E1C33"
+            android:strokeWidth="9"
+            android:strokeLineCap="round" />
     </group>
 </vector>

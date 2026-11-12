@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Snake 图标前景：正面蝰蛇头 + 竖椭圆眼 + 分叉信子（亮色版） -->
+<!-- Snake 图标前景（亮色）：Q 版小蛇脸，圆眼 + 腮红 + 微笑 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -7,39 +7,54 @@
     android:viewportHeight="512">
 
     <group
-        android:scaleX="0.9"
-        android:scaleY="0.9"
+        android:scaleX="1.05"
+        android:scaleY="1.05"
         android:pivotX="256"
         android:pivotY="256"
-        android:translateY="10">
+        android:translateY="29">
 
+        <!-- 头 -->
         <path
-            android:fillColor="#0A6BFF"
-            android:pathData="M226,96 C236,90 246,88 256,88 C266,88 276,90 286,96 C330,150 362,210 378,252 C388,278 376,302 352,316 C322,332 290,342 256,342 C222,342 190,332 160,316 C136,302 124,278 134,252 C150,210 182,150 226,96 Z" />
+            android:fillColor="#1E88FF"
+            android:pathData="M256,100 C330,100 382,154 382,228 C382,300 330,356 256,356 C182,356 130,300 130,228 C130,154 182,100 256,100 Z" />
 
-        <group
-            android:pivotX="205"
-            android:pivotY="238"
-            android:rotation="-24">
-            <path
-                android:fillColor="#FFFFFF"
-                android:pathData="M193,238 a12,34 0 1,0 24,0 a12,34 0 1,0 -24,0" />
-        </group>
-
-        <group
-            android:pivotX="307"
-            android:pivotY="238"
-            android:rotation="24">
-            <path
-                android:fillColor="#FFFFFF"
-                android:pathData="M295,238 a12,34 0 1,0 24,0 a12,34 0 1,0 -24,0" />
-        </group>
-
+        <!-- 眼白 -->
         <path
-            android:pathData="M256,334 L256,372 M256,372 L230,402 M256,372 L282,402"
-            android:strokeColor="#0A6BFF"
-            android:strokeWidth="18"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
+            android:fillColor="#FFFFFF"
+            android:pathData="M159,210 a41,41 0 1,0 82,0 a41,41 0 1,0 -82,0 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M271,210 a41,41 0 1,0 82,0 a41,41 0 1,0 -82,0 Z" />
+
+        <!-- 瞳孔 -->
+        <path
+            android:fillColor="#10233F"
+            android:pathData="M181,215 a23,23 0 1,0 46,0 a23,23 0 1,0 -46,0 Z" />
+        <path
+            android:fillColor="#10233F"
+            android:pathData="M293,215 a23,23 0 1,0 46,0 a23,23 0 1,0 -46,0 Z" />
+
+        <!-- 高光 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M187,205 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M299,205 a8,8 0 1,0 16,0 a8,8 0 1,0 -16,0 Z" />
+
+        <!-- 腮红 -->
+        <path
+            android:fillColor="#F98BA4"
+            android:pathData="M138,276 a22,14 0 1,0 44,0 a22,14 0 1,0 -44,0 Z" />
+        <path
+            android:fillColor="#F98BA4"
+            android:pathData="M330,276 a22,14 0 1,0 44,0 a22,14 0 1,0 -44,0 Z" />
+
+        <!-- 微笑 -->
+        <path
+            android:pathData="M236,292 Q256,308 276,292"
+            android:strokeColor="#10233F"
+            android:strokeWidth="9"
+            android:strokeLineCap="round" />
     </group>
 </vector>
