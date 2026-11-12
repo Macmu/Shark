@@ -22,7 +22,7 @@ Snake 是 [Shark](https://github.com/Yunnijian/Shark) 的改版：界面重做�
 
 <table align="center">
   <tr>
-    <td align="center"><img src="docs/screenshots/shot-home-v1.jpg" width="200" alt="首页"><br><sub><b>首页</b></sub></td>
+    <td align="center"><img src="docs/screenshots/shot-home-v4.jpg" width="200" alt="首页"><br><sub><b>首页</b></sub></td>
     <td align="center"><img src="docs/screenshots/shot-command-v1.jpg" width="200" alt="命令"><br><sub><b>命令</b></sub></td>
     <td align="center"><img src="docs/screenshots/shot-extras-v1.jpg" width="200" alt="扩展"><br><sub><b>扩展</b></sub></td>
     <td align="center"><img src="docs/screenshots/shot-about-v1.jpg" width="200" alt="关于"><br><sub><b>关于</b></sub></td>
@@ -33,6 +33,8 @@ Snake 是 [Shark](https://github.com/Yunnijian/Shark) 的改版：界面重做�
 
 - **内置授权**：点「一键授权」后 App 自己连接本机无线调试，配对码在通知栏输入，
   提交后通知自动消失。失败时才提示原因，成功不弹多余通知。
+- **状态一目了然**：标题旁常驻两个状态点——授权状态与越狱状态（读的是内核里
+  KernelSU 模块是否在跑，重启后依然准确），绿点正常、红点未就绪。
 - **单页界面**：顶部是机型、内核、管理器（点「切换」更换）；中间是进度与当前环节，
   下面是本次运行的实时输出；底部是「扩展 / 命令 / 一键授权（授权后变一键越狱）」。
 - **命令页**：内置 shell，未授权时以普通身份运行，授权后自动切到 root。

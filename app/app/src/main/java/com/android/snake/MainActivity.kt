@@ -485,11 +485,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
             Spacer(Modifier.width(14.dp))
+            // 关于按钮不再铺圆底：任何底色在深浅两套里都会显出一圈边，
+            // 只留 ⓘ 图标本身，点按区域仍有 34dp。
+            // 对齐到 "Snake" 标题的字面中心，而不是整列的垂直中线，
+            // 否则图标会偏低，看着和标题不在一条水平线上。
             Box(
                 modifier = Modifier
+                    .align(Alignment.Top)
+                    .padding(top = 6.dp)
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(palette.ink.copy(alpha = 0.05f))
                     .clickable { page = Page.ABOUT },
                 contentAlignment = Alignment.Center
             ) {
@@ -497,7 +502,7 @@ class MainActivity : ComponentActivity() {
                     Icons.Outlined.Info,
                     "关于",
                     Modifier.size(21.dp),
-                    palette.ink.copy(alpha = 0.72f)
+                    palette.ink.copy(alpha = 0.66f)
                 )
             }
         }
