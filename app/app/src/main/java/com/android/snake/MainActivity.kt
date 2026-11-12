@@ -1115,10 +1115,10 @@ class MainActivity : ComponentActivity() {
                 FontWeight.Bold,
                 modifier = Modifier.padding(top = if (block.level == 1) 6.dp else 12.dp)
             )
-            is MdBlock.Paragraph -> Txt(block.text, 13, palette.dim)
+            is MdBlock.Paragraph -> MdRich(block.text, 13, palette.dim, palette)
             is MdBlock.ListItem -> Row {
                 Txt(block.marker, 13, palette.dim, modifier = Modifier.width(18.dp))
-                Txt(block.text, 13, palette.dim, modifier = Modifier.weight(1f))
+                MdRich(block.text, 13, palette.dim, palette, Modifier.weight(1f))
             }
             is MdBlock.Callout -> Box(
                 Modifier
@@ -1126,7 +1126,7 @@ class MainActivity : ComponentActivity() {
                     .clip(RoundedCornerShape(8.dp))
                     .background(palette.accent.copy(alpha = 0.08f))
                     .padding(10.dp)
-            ) { Txt(block.text, 12, palette.dim) }
+            ) { MdRich(block.text, 12, palette.dim, palette) }
             is MdBlock.Code -> Box(
                 Modifier
                     .fillMaxWidth()
@@ -1153,6 +1153,30 @@ class MainActivity : ComponentActivity() {
     }
 
     /* -------- 对话框 -------- */
+
+    /** 手册正文需要 inline markdown（**加粗**、`代码`），BasicText 支持 AnnotatedString。 */
+    @Composable
+    private fun MdRich(
+        text: String,
+        size: Number,
+        color: Color,
+        palette: Palette,
+        modifier: Modifier = Modifier
+    ) {
+        val px = size.toFloat()
+        val annotated = remember(text) {
+            markdownInline(text, palette.ink.copy(alpha = 0.10f))
+        }
+        BasicText(
+            text = annotated,
+            modifier = modifier,
+            style = TextStyle(
+                color = color,
+                fontSize = px.sp,
+                lineHeight = (px * 1.55f).sp
+            )
+        )
+    }
 
     @Composable
     private fun SnakeDialog(
