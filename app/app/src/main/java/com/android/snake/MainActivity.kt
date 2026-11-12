@@ -54,6 +54,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Terminal
@@ -308,7 +309,7 @@ class MainActivity : ComponentActivity() {
         val dim = if (dark) Color(0xFF8B9098) else scheme.onSurfaceVariant
         val accent = if (dark) Color(0xFF7FB4FF) else scheme.accent
         val line = if (dark) Color(0xFF23262B) else ink.copy(alpha = 0.08f)
-        val surface = if (dark) Color(0xFF1B1D22) else scheme.surface
+        val surface = if (dark) Color(0xFF1B1D22) else Color(0xFFF2F3F6)
 
         val palette = Palette(background, surface, ink, dim, accent, line, dark)
 
@@ -408,7 +409,12 @@ class MainActivity : ComponentActivity() {
                     .clickable { page = Page.ABOUT },
                 contentAlignment = Alignment.Center
             ) {
-                Txt("!", 17, palette.dim, FontWeight.Bold)
+                Glyph(
+                    Icons.Outlined.Info,
+                    "关于",
+                    Modifier.size(21.dp),
+                    palette.ink.copy(alpha = 0.72f)
+                )
             }
         }
     }
@@ -417,7 +423,7 @@ class MainActivity : ComponentActivity() {
     private fun DeviceBlock(palette: Palette) {
         Column {
             InfoRow("设备", deviceModel, palette)
-            InfoRow("内核", kernelVersion, palette)
+            InfoRow("内核", shortKernel(kernelVersion), palette)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -472,11 +478,9 @@ class MainActivity : ComponentActivity() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Txt(label, 13, palette.dim, modifier = Modifier.width(64.dp))
-                // 完整 uname 常常 40+ 字符，marquee 滚一次会停在末尾、看起来像丢了前缀；
-                // 换成单行省略，匹配结果已由标题下方的 CVE 行给出。
                 Txt(
                     value,
-                    12.5f,
+                    13,
                     palette.ink,
                     FontWeight.Medium,
                     modifier = Modifier.weight(1f),
@@ -1770,6 +1774,19 @@ class MainActivity : ComponentActivity() {
     private fun formatDuration(ms: Long): String {
         val totalSeconds = ms / 1000
         return "%02d:%02d".format(totalSeconds / 60, totalSeconds % 60)
+    }
+
+    /**
+     * 完整 uname 形如 `6.6.118-android15-8-g9bc34d5b0c79-abogki537459655-4k`，
+     * 中间那串 commit hash 对本机识别没有意义，一行也放不下。
+     * 这里只保留内核版本、Android 版本与构建号，长度降到原来的一半左右。
+     */
+    private fun shortKernel(raw: String): String {
+        val version = Regex("""^(\d+\.\d+\.\d+)""").find(raw)?.groupValues?.get(1)
+        val android = Regex("""android(\d+)""").find(raw)?.groupValues?.get(1)
+        val build = Regex("""ab[a-z]*\d+""").findAll(raw).lastOrNull()?.value
+        val parts = listOfNotNull(version, android?.let { "android$it" }, build)
+        return if (parts.size >= 2) parts.joinToString(" · ") else raw
     }
 
     private fun resolveDeviceName(): String {

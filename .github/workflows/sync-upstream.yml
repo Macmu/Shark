@@ -1,0 +1,66 @@
+name: sync-upstream
+
+# 每天检查一次上游 Shark 是否发了新版本；有新机型就自动合并并提交。
+# 只同步「数据层」（jniLibs 二进制、exploit 源码、机型映射表），界面代码不动。
+on:
+  schedule:
+    # UTC 18:00 = 北京时间 02:00
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '指定上游 tag（留空自动取最新）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 拉取上游
+        run: |
+          git remote add upstream https://github.com/Yunnijian/Shark.git 2>/dev/null || true
+          git fetch upstream --tags --quiet
+
+      - name: 合并机型支持
+        id: sync
+        run: |
+          REF="${{ github.event.inputs.tag }}"
+          if [ -z "$REF" ]; then
+            REF="$(git describe --tags --abbrev=0 upstream/main)"
+          fi
+          echo "同步目标：$REF"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          ./tools/sync-upstream.sh "$REF"
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 提交并推送
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          git config user.name "snake-bot"
+          git config user.email "snake-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: 同步上游 ${{ steps.sync.outputs.ref }} 的机型支持"
+          git push
+
+      - name: 汇总
+        run: |
+          if [ "${{ steps.sync.outputs.changed }}" = "true" ]; then
+            echo "### 已同步上游 ${{ steps.sync.outputs.ref }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "机器型映射与 native 库已更新，需要重新构建 APK。" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### 无需更新" >> "$GITHUB_STEP_SUMMARY"
+            echo "上游 ${{ steps.sync.outputs.ref }} 的机型支持已包含在当前代码中。" >> "$GITHUB_STEP_SUMMARY"
+          fi

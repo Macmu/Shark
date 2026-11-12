@@ -42,6 +42,16 @@ SukiSU Ultra 或 FinaSU 的 root 环境。
 上游其余的 App 层改动会以 diff 形式列出来，由人判断是否移植。
 `tools/merge_device_profiles.py` 可单独重复执行，已存在的条目不会重复写入。
 
+仓库里还带了 `.github/workflows/sync-upstream.yml`：每天（北京时间 02:00）自动检查一次，
+发现上游有新 tag 就跑同一套合并流程并提交；也可以到 Actions 页面手动触发并指定 tag。
+它只改数据层，不会动界面代码。
+
+自动流程不产出 APK（缺少签名密钥）。需要本地出包就拉下来跑：
+
+```bash
+./gradlew :app:assembleRelease
+```
+
 ## 界面
 
 <table align="center">
