@@ -11,10 +11,12 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.RemoteInput
 import androidx.core.content.ContextCompat
 import io.github.muntashirakon.adb.AbsAdbConnectionManager
+import io.github.muntashirakon.adb.AdbPairingRequiredException
 import io.github.muntashirakon.adb.android.AdbMdns
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
@@ -59,10 +61,20 @@ object AdbAuth {
 
     /** 执行前的哨兵行：用来把 shell 的命令回显和真正的输出切开。 */
     private const val SENTINEL = "__SNAKE_BEGIN__"
+    private const val TAG = "SNAKE"
     private const val KEY_FILE = "adb.key"
     private const val CERT_FILE = "adb.crt"
 
-    enum class StartState { CONNECTED, PAIRING, NEED_PERMISSIONS }
+    enum class StartState { CONNECTED, PAIRING, UNAVAILABLE, NEED_PERMISSIONS }
+
+    /**
+     * 一次连接尝试的结果。
+     *
+     * 这三个状态必须分开：设备不认我们的密钥（NEEDS_PAIRING）才需要配对码；
+     * 无线调试没开、端口还没被发现（UNREACHABLE）只是连不上，让用户重新配对
+     * 是错的——之前就是这样一律弹配对通知，已授权的设备也被要求输码。
+     */
+    enum class ConnectOutcome { CONNECTED, NEEDS_PAIRING, UNREACHABLE }
 
     @Volatile
     private var manager: SharkAdbManager? = null
@@ -106,15 +118,26 @@ object AdbAuth {
     fun startPairingFlow(context: Context): Result<StartState> = runCatching {
         if (onMainThread()) error("内置授权连接不能在 UI 线程执行")
         if (!hasPermissions(context)) return@runCatching StartState.NEED_PERMISSIONS
-        if (connect(context)) {
-            mainHandler.post { runCatching { notifyResult(context, "内置授权已连接（无线调试）") } }
-            return@runCatching StartState.CONNECTED
+        when (connectWithRetry(context)) {
+            ConnectOutcome.CONNECTED -> {
+                mainHandler.post { runCatching { notifyResult(context, "内置授权已连接（无线调试）") } }
+                StartState.CONNECTED
+            }
+            ConnectOutcome.NEEDS_PAIRING -> {
+                // 只有设备确实不信任本机密钥时，才让用户输配对码。
+                mainHandler.post {
+                    runCatching { showPairingNotification(context) }
+                    runCatching { openDeveloperSettings(context) }
+                }
+                StartState.PAIRING
+            }
+            ConnectOutcome.UNREACHABLE -> {
+                // 没有发现无线调试端口：多半是开关没开或刚重启还没起来。
+                // 打开开发者选项方便用户去开，但不要塞给他一个配对码输入框。
+                mainHandler.post { runCatching { openDeveloperSettings(context) } }
+                StartState.UNAVAILABLE
+            }
         }
-        mainHandler.post {
-            runCatching { showPairingNotification(context) }
-            runCatching { openDeveloperSettings(context) }
-        }
-        StartState.PAIRING
     }
 
     /** 配对码由通知栏远程输入提交后调用。 */
@@ -148,20 +171,55 @@ object AdbAuth {
      * 后台线程调用。connecting 防止 onCreate 的静默重连与按钮点击并发争用；
      * 不再用 @Synchronized，避免第二个调用方在 UI 线程等待持有锁的后台任务。
      */
-    fun connect(context: Context, timeoutMs: Long = 4_000L): Boolean {
-        if (onMainThread() || !hasPermissions(context)) return false
-        if (!connecting.compareAndSet(false, true)) return isReady()
+    fun connect(context: Context, timeoutMs: Long = 8_000L): Boolean =
+        connectWithRetry(context, 2, timeoutMs) == ConnectOutcome.CONNECTED
+
+    /**
+     * 已配对设备重连：端口每次开关无线调试都会变，所以只能靠 mDNS 现找。
+     * 刚开机或刚打开开关时系统广告还没起来，一次发现不到很正常，因此重试几次
+     * 再下「需要配对」的结论。
+     */
+    fun connectWithRetry(
+        context: Context,
+        attempts: Int = 3,
+        timeoutMs: Long = 5_000L
+    ): ConnectOutcome {
+        var last = ConnectOutcome.UNREACHABLE
+        for (i in 0 until attempts.coerceAtLeast(1)) {
+            last = connectOutcome(context, timeoutMs)
+            if (last != ConnectOutcome.UNREACHABLE) return last
+            if (i < attempts - 1) runCatching { Thread.sleep(800) }
+        }
+        return last
+    }
+
+    fun connectOutcome(context: Context, timeoutMs: Long = 8_000L): ConnectOutcome {
+        if (onMainThread() || !hasPermissions(context)) return ConnectOutcome.UNREACHABLE
+        if (!connecting.compareAndSet(false, true)) {
+            return if (isReady()) ConnectOutcome.CONNECTED else ConnectOutcome.UNREACHABLE
+        }
         return try {
             val m = ensureManager(context)
-            val ok = if (m.isConnected) true
-            else m.connectTls(context.applicationContext, timeoutMs)
+            if (m.isConnected) {
+                connected = true
+                return ConnectOutcome.CONNECTED
+            }
+            val ok = m.connectTls(context.applicationContext, timeoutMs)
             connected = ok && m.isConnected
-            if (!connected) lastErrorMessage = "无线调试尚未连接或配对已失效"
-            connected
-        } catch (t: Throwable) {
-            lastErrorMessage = t.message ?: t.javaClass.simpleName
+            if (connected) {
+                ConnectOutcome.CONNECTED
+            } else {
+                lastErrorMessage = "未发现无线调试端口（无线调试可能未开启）"
+                ConnectOutcome.UNREACHABLE
+            }
+        } catch (_: AdbPairingRequiredException) {
             connected = false
-            false
+            lastErrorMessage = "设备未信任本应用的调试密钥，需要重新配对"
+            ConnectOutcome.NEEDS_PAIRING
+        } catch (t: Throwable) {
+            connected = false
+            lastErrorMessage = t.message ?: t.javaClass.simpleName
+            ConnectOutcome.UNREACHABLE
         } finally {
             connecting.set(false)
         }
@@ -322,7 +380,12 @@ object AdbAuth {
     private fun ensureManager(context: Context): SharkAdbManager {
         manager?.let { return it }
         val (key, cert) = loadOrCreateIdentity(context)
-        return SharkAdbManager(key, cert).also { manager = it }
+        // libadb 默认 mThrowOnUnauthorised=false：设备不认密钥时只是返回 false，
+        // 和「端口没发现」完全无法区分。打开后未授权会抛 AdbPairingRequiredException。
+        return SharkAdbManager(key, cert).also {
+            it.setThrowOnUnauthorised(true)
+            manager = it
+        }
     }
 
     private fun loadOrCreateIdentity(context: Context): Pair<PrivateKey, Certificate> {

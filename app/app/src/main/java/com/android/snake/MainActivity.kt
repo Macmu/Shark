@@ -164,6 +164,7 @@ class MainActivity : ComponentActivity() {
     private var authorized by mutableStateOf(false)
     private var binderReady by mutableStateOf(false)
     private var ksuActive by mutableStateOf(false)
+    private var lastReconnectAt = 0L
     private var exploit by mutableStateOf(ExploitKind.UNSUPPORTED)
     private var manager by mutableStateOf(ManagerKind.KERNELSU)
     private var kernelVersion by mutableStateOf("未知")
@@ -301,6 +302,26 @@ class MainActivity : ComponentActivity() {
         if (binderReady && authorized) {
             runCatching { AdbAuth.dismissPairingNotification(applicationContext) }
             refreshKsuAsync()
+        }
+        // 从设置里打开无线调试再切回来时，这里能自动把连接接上，
+        // 不需要用户再点一次按钮。20 秒冷却，避免频繁扫 mDNS。
+        if (!AdbAuth.isReady()) {
+            val now = System.currentTimeMillis()
+            if (now - lastReconnectAt > 20_000L) {
+                lastReconnectAt = now
+                lifecycleScope.launch(Dispatchers.IO) {
+                    // 刚开机或刚打开无线调试时，系统的 mDNS 广告可能要几秒才出来，
+                    // 所以给两次机会；仍然失败就等用户下次切回前台再说。
+                    val outcome = AdbAuth.connectWithRetry(applicationContext, 2, 5_000L)
+                    withContext(Dispatchers.Main) {
+                        refreshAuth()
+                        refreshKsuAsync()
+                        if (outcome == AdbAuth.ConnectOutcome.CONNECTED) {
+                            addLog("内置授权已自动重连")
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -697,7 +718,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     Txt(
                         if (binderReady && authorized) "已就绪，点右下角开始越狱。"
-                        else "尚未授权。点右下角「一键授权」，按提示输入无线调试的六位配对码。",
+                        else "尚未授权。点右下角「一键授权」；已配对过的设备只需打开「无线调试」，回到本页会自动重连。",
                         11.5f,
                         palette.dim,
                         mono = true,
@@ -1855,6 +1876,11 @@ class MainActivity : ComponentActivity() {
                             AdbAuth.StartState.PAIRING -> {
                                 AdbAuth.lastError()?.let { addLog("连接未就绪：$it") }
                                 addLog("请打开「无线调试 → 使用配对码配对设备」，保持弹窗开启，在通知栏输入六位配对码；完成后回到本页")
+                            }
+                            AdbAuth.StartState.UNAVAILABLE -> {
+                                AdbAuth.lastError()?.let { Log.i("SNAKE", "auth unavailable: $it") }
+                                addLog("未发现无线调试端口：请确认「无线调试」已打开")
+                                addLog("已配对过的设备不用再输配对码，回到本页会自动重连")
                             }
                             AdbAuth.StartState.NEED_PERMISSIONS -> {
                                 addLog("申请本地网络与通知权限…")
