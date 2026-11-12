@@ -263,6 +263,8 @@ class MainActivity : ComponentActivity() {
             withContext(Dispatchers.Main) {
                 binderReady = PrivService.pick() != null
                 refreshAuth()
+                // 连上之后再读一次内核模块状态，否则 ksuActive 会一直停在初始的 false。
+                refreshKsuAsync()
             }
         }
 
@@ -298,6 +300,7 @@ class MainActivity : ComponentActivity() {
         // 配对输入通知，避免它一直挂在通知栏。
         if (binderReady && authorized) {
             runCatching { AdbAuth.dismissPairingNotification(applicationContext) }
+            refreshKsuAsync()
         }
     }
 
@@ -336,8 +339,11 @@ class MainActivity : ComponentActivity() {
         val accent = if (dark) Color(0xFF7FB4FF) else scheme.accent
         val line = if (dark) Color(0xFF23262B) else ink.copy(alpha = 0.08f)
         val surface = if (dark) Color(0xFF1B1D22) else Color(0xFFF2F3F6)
+        // 控制台比底色只亮一档：亮色原本就是这样，暗色原来抬得太高成了灰块，
+        // 这里把差值压到和亮色相当（#101114 → #121318，与亮色同为 +2~4 级）。
+        val panel = if (dark) Color(0xFF121318) else Color(0xFFF2F3F6)
 
-        val palette = Palette(background, surface, ink, dim, accent, line, dark)
+        val palette = Palette(background, surface, panel, ink, dim, accent, line, dark)
 
         BackHandler(enabled = page != Page.HOME || cmdSheetOpen) {
             when {
@@ -450,14 +456,35 @@ class MainActivity : ComponentActivity() {
             Column(Modifier.weight(1f)) {
                 Txt("Snake", 30, palette.ink, FontWeight.Bold)
                 Spacer(Modifier.height(3.dp))
-                Txt(
-                    if (exploit == ExploitKind.UNSUPPORTED) "当前内核不受支持 · $kernelVersion"
-                    else exploit.fullLabel,
-                    11.5f,
-                    palette.dim,
-                    maxLines = 1
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Txt(
+                        if (exploit == ExploitKind.UNSUPPORTED) "当前内核不受支持 · $kernelVersion"
+                        else exploit.fullLabel,
+                        11.5f,
+                        palette.dim,
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1
+                    )
+                    // 授权状态：能连上内置授权即视为已授权
+                    val authOk = binderReady && authorized
+                    StatusDot(
+                        if (authOk) "已授权" else "未授权",
+                        if (authOk) Color(0xFF36D167) else Color(0xFFE5484D),
+                        palette
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    // 越狱状态以 /proc/modules 里 kernelsu 是否在跑为准，
+                    // 开机重启后依然能反映真实情况，而不只是「本次运行成功过」。
+                    val jail = when {
+                        busy -> "越狱中" to palette.accent
+                        ksuActive -> "已越狱" to Color(0xFF36D167)
+                        finishedOk == false -> "越狱失败" to Color(0xFFE5484D)
+                        else -> "未越狱" to Color(0xFFE5484D)
+                    }
+                    StatusDot(jail.first, jail.second, palette)
+                }
             }
+            Spacer(Modifier.width(14.dp))
             Box(
                 modifier = Modifier
                     .size(34.dp)
@@ -473,6 +500,16 @@ class MainActivity : ComponentActivity() {
                     palette.ink.copy(alpha = 0.72f)
                 )
             }
+        }
+    }
+
+    /** 行内状态：一个小圆点 + 短标签，跟着副标题排，不单独占一行。 */
+    @Composable
+    private fun StatusDot(label: String, dot: Color, palette: Palette) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(5.dp).clip(CircleShape).background(dot))
+            Spacer(Modifier.width(4.dp))
+            Txt(label, 10.5f, palette.dim, maxLines = 1)
         }
     }
 
@@ -646,7 +683,7 @@ class MainActivity : ComponentActivity() {
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(palette.surface)
+                .background(palette.panel)
         ) {
             if (snapshot.isEmpty()) {
                 Box(
@@ -885,7 +922,7 @@ class MainActivity : ComponentActivity() {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(palette.surface)
+                    .background(palette.panel)
             ) {
                 if (snapshot.isEmpty()) {
                     Box(
@@ -1692,6 +1729,8 @@ class MainActivity : ComponentActivity() {
     private data class Palette(
         val background: Color,
         val surface: Color,
+        /** 控制台这类大块区域：深色与背景同色，浅色用白卡片，靠一圈细线界定范围。 */
+        val panel: Color,
         val ink: Color,
         val dim: Color,
         val accent: Color,
