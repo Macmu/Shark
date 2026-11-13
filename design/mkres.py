@@ -1,8 +1,8 @@
 from PIL import Image, ImageDraw
 import os
 
-DESIGN = '/Users/ranmuhan/WorkBuddy/2026-11-12-09-00-02/research/Shark/design'
-RES = '/Users/ranmuhan/WorkBuddy/2026-11-12-09-00-02/research/Shark/app/app/src/main/res'
+DESIGN = '/Users/ranmuhan/WorkBuddy/2026-11-12-09-00-02/research/Snake/design'
+RES = '/Users/ranmuhan/WorkBuddy/2026-11-12-09-00-02/research/Snake/app/app/src/main/res'
 
 art = Image.open(os.path.join(DESIGN, 'icon-src-alpha.png')).convert('RGBA')
 aw, ah = art.size

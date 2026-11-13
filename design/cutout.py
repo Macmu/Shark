@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw, ImageFilter
 import os
 
 SRC = '/Users/ranmuhan/.workbuddy/clipboard-images/clipboard-2026-11-12T16-02-43-194Z-79c9ba09.jpg'
-OUT = '/Users/ranmuhan/WorkBuddy/2026-11-12-09-00-02/research/Shark/design'
+OUT = '/Users/ranmuhan/WorkBuddy/2026-11-12-09-00-02/research/Snake/design'
 
 im = Image.open(SRC).convert('RGBA')
 w, h = im.size

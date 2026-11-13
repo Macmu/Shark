@@ -1,7 +1,7 @@
 from PIL import Image
 import os
 
-OUT = '/Users/ranmuhan/WorkBuddy/2026-11-12-09-00-02/research/Shark/design'
+OUT = '/Users/ranmuhan/WorkBuddy/2026-11-12-09-00-02/research/Snake/design'
 art = Image.open(os.path.join(OUT, 'icon-src-alpha.png')).convert('RGBA')
 aw, ah = art.size
 print('art', art.size)
