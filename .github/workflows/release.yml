@@ -15,8 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # 需要拿到 tag 说明作为发布正文
 
       - name: 校验安装包
         run: |
@@ -29,18 +27,29 @@ jobs:
           ( cd dist && sha256sum -c SHA256SUMS.txt )
           echo "APK=$APK" >> "$GITHUB_ENV"
 
-      - name: 取 tag 说明作为发布正文
+      # tag 对象在 CI checkout 里不可靠（可能被 fetch 成轻量标签），
+      # 发布正文一律从仓库里的 .github/releases/<tag>.md 取，可评审、可追溯。
+      - name: 定位发布正文
         run: |
-          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
-          if [ ! -s "$RUNNER_TEMP/notes.md" ]; then
-            echo "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+          NOTES=".github/releases/${GITHUB_REF_NAME}.md"
+          if [ -f "$NOTES" ]; then
+            echo "NOTES=$NOTES" >> "$GITHUB_ENV"
+          else
+            echo "NOTES=" >> "$GITHUB_ENV"
+            echo "::warning::没有 $NOTES，退回自动生成 changelog"
           fi
 
-      - name: 创建 Release
+      - name: 创建或更新 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "$APK" dist/SHA256SUMS.txt \
-            --title "Snake ${GITHUB_REF_NAME}" \
-            --notes-file "$RUNNER_TEMP/notes.md" \
-            --latest
+          notes_arg=(--generate-notes)
+          if [ -n "$NOTES" ]; then notes_arg=(--notes-file "$NOTES"); fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            # 重跑（比如改了正文或重出包）也要收敛到期望状态
+            gh release edit "$GITHUB_REF_NAME" --title "Snake ${GITHUB_REF_NAME}" "${notes_arg[@]}"
+            gh release upload "$GITHUB_REF_NAME" "$APK" dist/SHA256SUMS.txt --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$APK" dist/SHA256SUMS.txt \
+              --title "Snake ${GITHUB_REF_NAME}" "${notes_arg[@]}" --latest
+          fi
