@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Android 11+ 不声明 package 就查不到/拉不起对应管理器 -->
     <queries>
         <package android:name="roro.stellar.manager" />
         <package android:name="me.weishu.kernelsu" />

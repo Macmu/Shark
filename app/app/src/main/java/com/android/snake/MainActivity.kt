@@ -163,13 +163,11 @@ class MainActivity : ComponentActivity() {
     private var busy by mutableStateOf(false)
     private var authorized by mutableStateOf(false)
     private var binderReady by mutableStateOf(false)
-    private var ksuActive by mutableStateOf(false)
     private var lastReconnectAt = 0L
     private var exploit by mutableStateOf(ExploitKind.UNSUPPORTED)
     private var manager by mutableStateOf(ManagerKind.KERNELSU)
     private var kernelVersion by mutableStateOf("未知")
     private var deviceModel by mutableStateOf("未知")
-    private var selinuxText by mutableStateOf("未知")
     private var managerPickerOpen by mutableStateOf(false)
 
     /* ===== 进度 ===== */
@@ -222,18 +220,15 @@ class MainActivity : ComponentActivity() {
     private val binderListener = Shizuku.OnBinderReceivedListener {
         binderReady = PrivService.pick() != null
         refreshAuth()
-        refreshKsuAsync()
     }
     private val stellarBinderListener = Stellar.OnBinderReceivedListener {
         binderReady = PrivService.pick() != null
         refreshAuth()
-        refreshKsuAsync()
     }
 
     private fun onPermissionResult(ok: Boolean) {
         authorized = ok
         addLog(if (ok) "${PrivService.pick()?.label ?: "Backend"} authorized" else "permission denied")
-        if (ok) refreshKsuAsync()
     }
 
     /* ===== 生命周期 ===== */
@@ -264,8 +259,6 @@ class MainActivity : ComponentActivity() {
             withContext(Dispatchers.Main) {
                 binderReady = PrivService.pick() != null
                 refreshAuth()
-                // 连上之后再读一次内核模块状态，否则 ksuActive 会一直停在初始的 false。
-                refreshKsuAsync()
             }
         }
 
@@ -283,8 +276,6 @@ class MainActivity : ComponentActivity() {
         if (manager == ManagerKind.DYNAMIC && !supportsUniversal()) manager = ManagerKind.KERNELSU
         hotManager = if (manager == ManagerKind.DYNAMIC) ManagerKind.KERNELSU else manager
         deviceModel = resolveDeviceName()
-        refreshStaticStateAsync()
-        refreshKsuAsync()
 
         setContent {
             CouiTheme(darkTheme = androidx.compose.foundation.isSystemInDarkTheme()) {
@@ -301,7 +292,6 @@ class MainActivity : ComponentActivity() {
         // 配对输入通知，避免它一直挂在通知栏。
         if (binderReady && authorized) {
             runCatching { AdbAuth.dismissPairingNotification(applicationContext) }
-            refreshKsuAsync()
         }
         // 从设置里打开无线调试再切回来时，这里能自动把连接接上，
         // 不需要用户再点一次按钮。20 秒冷却，避免频繁扫 mDNS。
@@ -315,7 +305,6 @@ class MainActivity : ComponentActivity() {
                     val outcome = AdbAuth.connectWithRetry(applicationContext, 2, 5_000L)
                     withContext(Dispatchers.Main) {
                         refreshAuth()
-                        refreshKsuAsync()
                         if (outcome == AdbAuth.ConnectOutcome.CONNECTED) {
                             addLog("内置授权已自动重连")
                         }
@@ -486,23 +475,16 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.weight(1f),
                         maxLines = 1
                     )
-                    // 授权状态：能连上内置授权即视为已授权
+                    // 授权状态：能连上内置授权即视为已授权。
+                    // 越狱状态不再显示——没有授权时普通 App 读不到 /proc/modules
+                    //（SELinux 拒绝），su 又被 KSU 对未授权进程隐藏，只有一个
+                    //「装了管理器」的弱信号，任何结论都是猜的，不如不给。
                     val authOk = binderReady && authorized
                     StatusDot(
                         if (authOk) "已授权" else "未授权",
                         if (authOk) Color(0xFF36D167) else Color(0xFFE5484D),
                         palette
                     )
-                    Spacer(Modifier.width(10.dp))
-                    // 越狱状态以 /proc/modules 里 kernelsu 是否在跑为准，
-                    // 开机重启后依然能反映真实情况，而不只是「本次运行成功过」。
-                    val jail = when {
-                        busy -> "越狱中" to palette.accent
-                        ksuActive -> "已越狱" to Color(0xFF36D167)
-                        finishedOk == false -> "越狱失败" to Color(0xFFE5484D)
-                        else -> "未越狱" to Color(0xFFE5484D)
-                    }
-                    StatusDot(jail.first, jail.second, palette)
                 }
             }
             Spacer(Modifier.width(14.dp))
@@ -1894,33 +1876,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun refreshKsuAsync() {
-        if (PrivService.pick() == null) return
-        lifecycleScope.launch(Dispatchers.IO) {
-            runCatching {
-                val (active, se) = readDeviceState()
-                withContext(Dispatchers.Main) {
-                    ksuActive = active
-                    selinuxText = se
-                }
-            }
-        }
-    }
-
-    private fun readDeviceState(): Pair<Boolean, String> {
+    /** 以 shell 身份读内核模块表，判断 KernelSU 模块是否已加载。 */
+    private fun readDeviceState(): Boolean {
         val p = PrivService.newProcess(
             arrayOf(
                 "sh", "-c",
-                "if grep -q '^kernelsu .* Live ' /proc/modules; then echo YES; elif timeout 3 su -c id 2>/dev/null | grep -q uid=0; then echo YES; else echo NO; fi; getenforce"
+                "if grep -q '^kernelsu .* Live ' /proc/modules; then echo YES; elif timeout 3 su -c id 2>/dev/null | grep -q uid=0; then echo YES; else echo NO; fi"
             ),
             shizukuEnv(), "/"
         )
         val lines = p.getInputStream().bufferedReader().readLines()
         p.waitFor()
         // ADB shell 会话可能夹带回显或空行，不能假设状态在固定行号。
-        val active = lines.any { it.trim().equals("YES", ignoreCase = true) }
-        val se = lines.map { mapSelinux(it.trim()) }.firstOrNull { it != "未知" } ?: "未知"
-        return active to se
+        return lines.any { it.trim().equals("YES", ignoreCase = true) }
     }
 
     private fun updateAntiRootGuard(value: Boolean) {
@@ -2175,16 +2143,12 @@ class MainActivity : ComponentActivity() {
                 val (rc, transcript) = runStreaming(cmd, nativeDir)
                 exit = rc
                 addLog("exploit exit=$rc")
-                val (active, se) = readDeviceState()
+                val active = readDeviceState()
                 // runner 打印的 DONE 是越狱成功最直接的证据；ADB shell 回显
                 // 可能让状态检测误判，任一成立即视为已加载。
                 val runnerOk = transcript.lineSequence().any { it.trim() == "DONE" }
                 val loaded = active || runnerOk
                 success = (rc == 0 || runnerOk) && loaded
-                withContext(Dispatchers.Main) {
-                    ksuActive = loaded
-                    selinuxText = se
-                }
                 addLog(if (loaded) "KernelSU module loaded" else "KernelSU module not loaded")
                 if (loaded) advanceStage(4)
                 if (rc == 0 && loaded && !softReboot) withContext(Dispatchers.Main) { launchManager() }
@@ -2347,39 +2311,6 @@ class MainActivity : ComponentActivity() {
         props.getMethod("get", String::class.java).invoke(null, key) as? String ?: ""
     } catch (t: Throwable) {
         ""
-    }
-
-    private fun refreshStaticStateAsync() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            val raw = getSELinuxStatusRaw()
-            withContext(Dispatchers.Main) { selinuxText = mapSelinux(raw) }
-        }
-    }
-
-    private fun getSELinuxStatusRaw(): String = try {
-        val process = ProcessBuilder("getenforce").start()
-        val stdout = process.inputStream.bufferedReader().readText().trim()
-        val stderr = process.errorStream.bufferedReader().readText().trim()
-        val ok = process.waitFor() == 0
-        if (ok) {
-            when (stdout) {
-                "Enforcing", "Permissive", "Disabled" -> stdout
-                else -> "Unknown"
-            }
-        } else if (stderr.endsWith("Permission denied")) {
-            "Enforcing"
-        } else {
-            "Unknown"
-        }
-    } catch (t: Throwable) {
-        "Unknown"
-    }
-
-    private fun mapSelinux(raw: String): String = when (raw) {
-        "Enforcing" -> "强制执行"
-        "Permissive" -> "宽容模式"
-        "Disabled" -> "已禁用"
-        else -> "未知"
     }
 
     private fun shizukuEnv(): Array<String> = arrayOf(
