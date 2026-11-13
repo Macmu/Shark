@@ -10,6 +10,8 @@
   <img src="docs/badges/kernel.svg" alt="Kernel">
 </p>
 
+<p align="center">下载 → <a href="https://github.com/Macmu/Snake/releases/latest">Releases</a>（安装包与 SHA256 校验和）</p>
+
 Snake 是 [Shark](https://github.com/Yunnijian/Shark) 的改版：界面重做成单页、
 包名独立为 `com.android.snake`、只保留内置授权链路。App 自己连接本机无线调试
 拿 shell，**不需要安装或启动 Shizuku / Stellar**；拿到临时内核权限后按所选
