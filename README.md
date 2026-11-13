@@ -137,6 +137,26 @@ cd app
 设备端 runner 不在 App 构建里编译，仓库直接使用 `jniLibs` 下已构建好的
 `libk*.so`；需要重编时见 `exploit/build-all.sh`。
 
+## 发布
+
+签名密钥不进仓库，所以安装包仍在本地编好、连同 `dist/SHA256SUMS.txt` 一起提交，
+再由 CI 分发：推一个 `vX.Y.Z` 的 tag，`.github/workflows/release.yml` 会校验
+校验和，把 `dist/Snake-vX.Y.Z.apk` 和 `SHA256SUMS.txt` 挂到 Releases。
+
+```bash
+# 1. 改 app/build.gradle.kts 的 versionCode / versionName 并出包
+cd app && ./gradlew :app:assembleRelease
+cd .. && cp app/app/build/outputs/apk/release/app-release.apk dist/Snake-v1.3.apk
+cd dist && shasum -a 256 Snake-v1.3.apk > SHA256SUMS.txt
+
+# 2. 发布正文写在 .github/releases/<tag>.md，然后打 tag
+git add -A && git commit -m "release: 1.3" && git push
+git tag -a v1.3 -F .github/releases/v1.3.md && git push origin v1.3
+```
+
+注意两点：`dist/Snake-v<版本>.apk` 的文件名必须和 tag 对得上（CI 按 tag 找包）；
+tag 一旦删掉，GitHub 会连带删除它对应的 Release，重新发请换新版本号，不要复用旧 tag。
+
 ## 跟进上游更新
 
 只吸收上游的**机型支持**与**后台逻辑**，界面代码独立维护，因此不需要逐版本追。
