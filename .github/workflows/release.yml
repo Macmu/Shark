@@ -1,0 +1,46 @@
+name: release
+
+# 打 tag（形如 v1.2）即发布：把 dist/ 里已经签好名的安装包挂到 Releases。
+# 不在 CI 里编译——签名密钥不进仓库，出包仍在本地做，CI 只负责分发。
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 需要拿到 tag 说明作为发布正文
+
+      - name: 校验安装包
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          APK="dist/Snake-v${VER}.apk"
+          if [ ! -f "$APK" ]; then
+            echo "::error::缺少 $APK，请先把本地构建好的安装包提交到 dist/"
+            exit 1
+          fi
+          ( cd dist && sha256sum -c SHA256SUMS.txt )
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - name: 取 tag 说明作为发布正文
+        run: |
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+          if [ ! -s "$RUNNER_TEMP/notes.md" ]; then
+            echo "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"
+          fi
+
+      - name: 创建 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "$APK" dist/SHA256SUMS.txt \
+            --title "Snake ${GITHUB_REF_NAME}" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --latest
